@@ -21,4 +21,10 @@ export class RunsController {
   findAll() {
     return this.service.findAll();
   }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get run by id' })
+  findOne(@Param('id') id: number) {
+    return this.service.findOne(+id);
+  }
 }

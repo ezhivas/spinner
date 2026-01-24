@@ -51,4 +51,11 @@ export class RunsService {
   async findAll() {
     return this.runRepo.find();
   }
+
+  async findOne(id: number) {
+    return this.runRepo.findOne({
+      where: { id },
+      relations: ['request', 'environment'],
+    });
+  }
 }

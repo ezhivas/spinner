@@ -6,14 +6,16 @@ import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
 import { RequestRunEntity } from './request-run.entity';
 
-const logger = new Logger('RunsWorker');
-
 export function startRunsWorker(
   dataSource: DataSource,
   httpExecutor: HttpExecutorService,
   variableResolver: VariableResolverService,
 ) {
-  new Worker(
+  const logger = new Logger('RunsWorker');
+
+  logger.log('Initializing runs worker');
+
+  const worker = new Worker(
     'runs',
     async (job: Job) => {
       logger.log(`Processing run ${job.data.runId}`);
@@ -80,4 +82,8 @@ export function startRunsWorker(
       connection: bullConnection,
     },
   );
+
+  worker.on('ready', () => logger.log('Runs worker is ready'));
+  worker.on('error', (err) => logger.error('Runs worker error', err));
+  worker.on('failed', (job, err) => logger.error(`Job ${job?.id} failed`, err));
 }

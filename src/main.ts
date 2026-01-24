@@ -24,10 +24,15 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   // Worker
-  const dataSource = app.get(DataSource);
-  const httpExecutor = app.get(HttpExecutorService);
-  const variableResolver = app.get(VariableResolverService);
-  startRunsWorker(dataSource, httpExecutor, variableResolver);
+  try {
+    const dataSource = app.get(DataSource);
+    const httpExecutor = app.get(HttpExecutorService);
+    const variableResolver = app.get(VariableResolverService);
+    startRunsWorker(dataSource, httpExecutor, variableResolver);
+    console.log('Runs worker started successfully');
+  } catch (error) {
+    console.error('Failed to start runs worker:', error);
+  }
 
   await app.listen(3000);
 }

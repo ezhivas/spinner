@@ -171,6 +171,18 @@
       }
     },
     {
+      "name": "Get Run by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs/{{runId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["runs", "{{runId}}"]
+        }
+      }
+    },
+    {
       "name": "Create Collection",
       "request": {
         "method": "POST",
@@ -267,6 +279,11 @@
     },
     {
       "key": "collectionId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "runId",
       "value": "1",
       "type": "string"
     }
