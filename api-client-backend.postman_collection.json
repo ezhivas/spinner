@@ -140,6 +140,39 @@
       }
     },
     {
+      "name": "Update Environment",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Environment\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/environments/{{environmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["environments", "{{environmentId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Environment",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/environments/{{environmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["environments", "{{environmentId}}"]
+        }
+      }
+    },
+    {
       "name": "Run Request",
       "request": {
         "method": "POST",
@@ -259,6 +292,40 @@
           "path": ["collections", "{{collectionId}}"]
         }
       }
+    },
+    {
+      "name": "Import Collection from Postman",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "description": "Upload Postman collection JSON file"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/collections/import",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections", "import"]
+        }
+      }
+    },
+    {
+      "name": "Export Collection to Postman",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/collections/{{collectionId}}/export",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections", "{{collectionId}}", "export"]
+        }
+      }
     }
   ],
   "variable": [
@@ -285,6 +352,11 @@
     {
       "key": "runId",
       "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "variableKey",
+      "value": "BASE_URL",
       "type": "string"
     }
   ]
