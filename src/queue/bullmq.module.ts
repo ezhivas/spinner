@@ -4,8 +4,8 @@ import { Queue } from 'bullmq';
 export const RUNS_QUEUE = 'runs';
 
 export const bullConnection = {
-  host: 'localhost',
-  port: 6379,
+  host: process.env.REDIS_HOST || 'localhost',
+  port: Number(process.env.REDIS_PORT) || 6379,
 };
 
 export const runsQueue = new Queue(RUNS_QUEUE, {

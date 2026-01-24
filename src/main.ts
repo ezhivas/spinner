@@ -1,10 +1,11 @@
-import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { startRunsWorker } from './runs/runs.worker';
 import { LoggingInterceptor } from './common/logging.interceptor';
+import { HttpExecutorService } from './http-executor/http-executor.service';
+import { VariableResolverService } from './environments/variable-resolver.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,7 +25,9 @@ async function bootstrap() {
 
   // Worker
   const dataSource = app.get(DataSource);
-  startRunsWorker(dataSource);
+  const httpExecutor = app.get(HttpExecutorService);
+  const variableResolver = app.get(VariableResolverService);
+  startRunsWorker(dataSource, httpExecutor, variableResolver);
 
   await app.listen(3000);
 }
