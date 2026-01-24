@@ -27,7 +27,7 @@ import { CollectionsModule } from './collections/collections.module';
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
-        logging: true,
+        logging: config.get<boolean>('LOG_DB_QUERIES') || false,
       }),
     }),
     RequestsModule,

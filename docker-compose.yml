@@ -19,5 +19,24 @@ services:
     ports:
       - "6379:6379"
 
+  app:
+    build: .
+    container_name: api_client_app
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: api_client
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOG_DB_QUERIES: "false"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
 volumes:
   pg_data:

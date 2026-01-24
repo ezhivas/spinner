@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { EnvironmentsService } from './environments.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
@@ -24,5 +24,29 @@ export class EnvironmentsController {
   @ApiOperation({ summary: 'Get environment by id' })
   findOne(@Param('id') id: number) {
     return this.service.findOne(+id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update environment' })
+  update(@Param('id') id: number, @Body() dto: Partial<CreateEnvironmentDto>) {
+    return this.service.update(+id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete environment' })
+  remove(@Param('id') id: number) {
+    return this.service.remove(+id);
+  }
+
+  @Patch(':id/variables')
+  @ApiOperation({ summary: 'Add or update variables in environment' })
+  updateVariables(@Param('id') id: number, @Body() variables: Record<string, string>) {
+    return this.service.updateVariables(+id, variables);
+  }
+
+  @Delete(':id/variables/:key')
+  @ApiOperation({ summary: 'Delete a variable from environment' })
+  deleteVariable(@Param('id') id: number, @Param('key') key: string) {
+    return this.service.deleteVariable(+id, key);
   }
 }
