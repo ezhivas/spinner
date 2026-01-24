@@ -34,6 +34,10 @@ services:
       REDIS_PORT: 6379
       LOG_DB_QUERIES: "false"
       REQUEST_TIMEOUT: 60000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
     depends_on:
       - postgres
       - redis

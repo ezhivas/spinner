@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dark API Client</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            900: '#1a1b1e',
+                            800: '#25262b',
+                            700: '#2c2e33',
+                            600: '#373a40',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Скроллбар для красоты */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1b1e; }
+        ::-webkit-scrollbar-thumb { background: #373a40; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #5c5f66; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden font-sans">
+
+<div class="w-1/4 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div class="p-4 border-b border-gray-700 font-bold text-xl flex justify-between items-center">
+        <span>🚀 API Client</span>
+        <button onclick="loadRequests()" class="text-sm bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">↻</button>
+    </div>
+    <div class="flex border-b border-gray-700">
+        <button id="requestsTab" onclick="showRequests()" class="flex-1 py-2 text-center bg-gray-700 text-white font-bold">Requests</button>
+        <button id="collectionRequestsTab" onclick="showCollectionRequests()" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700">Collection Requests</button>
+        <button id="collectionsTab" onclick="showCollections()" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700">Collections</button>
+    </div>
+    <div id="requestsList" class="flex-1 overflow-y-auto p-2 space-y-1">
+        <div class="text-center text-gray-500 mt-10">Loading...</div>
+    </div>
+    <div class="p-2 border-t border-gray-700">
+        <button onclick="showCreateRequestModal()" class="w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded">+ New Request</button>
+    </div>
+    <div id="collectionsList" class="flex-1 overflow-y-auto p-2 space-y-1 hidden">
+        <div class="text-center text-gray-500 mt-10">Loading...</div>
+        <button onclick="showCreateCollectionModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded mt-4">+ New Collection</button>
+    </div>
+</div>
+
+<div class="flex-1 flex flex-col h-full">
+
+    <!-- Header Panel -->
+    <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex space-x-2">
+            <button onclick="showImportCollectionModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm">Import Collection</button>
+            <button onclick="showExportCollectionModal()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm">Export Collection</button>
+            <button onclick="showManageEnvironmentsModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm">Environments</button>
+        </div>
+        <div class="text-gray-400 text-sm">🚀 API Client</div>
+    </div>
+
+    <div class="p-4 bg-gray-800 border-b border-gray-700 flex items-center space-x-2">
+        <span id="methodBadge" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm">METHOD</span>
+        <input type="text" id="urlInput" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500" readonly placeholder="Select a request...">
+        <select id="environmentSelect" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500">
+            <option value="">No Environment</option>
+        </select>
+        <button id="editBtn" onclick="toggleEditMode()" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold hidden">Edit</button>
+        <button id="saveBtn" onclick="saveChanges()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold hidden">Save</button>
+        <button id="discardBtn" onclick="discardChanges()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold hidden">Discard</button>
+        <button id="runBtn" onclick="runCurrentRequest()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            ▶ Run
+        </button>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden">
+
+        <div class="w-1/2 p-4 border-r border-gray-700 overflow-y-auto">
+            <h3 class="text-gray-400 text-xs font-bold uppercase mb-2">Request Body (JSON)</h3>
+            <pre id="requestBodyDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px]"></pre>
+            <textarea id="requestBodyEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px] w-full hidden" placeholder="Enter JSON body..."></textarea>
+
+            <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Headers</h3>
+            <pre id="requestHeadersDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400"></pre>
+            <textarea id="requestHeadersEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400 w-full hidden" placeholder="Enter JSON headers..."></textarea>
+        </div>
+
+        <div class="w-1/2 p-4 bg-gray-900 overflow-y-auto flex flex-col">
+            <div class="flex justify-between items-end mb-2">
+                <h3 class="text-gray-400 text-xs font-bold uppercase">Response</h3>
+                <div id="statusBadge" class="hidden text-xs px-2 py-1 rounded bg-gray-700">Status: <span id="statusValue"></span></div>
+                <div id="timer" class="text-xs text-gray-500 font-mono hidden">Time: <span id="timerValue">0ms</span></div>
+            </div>
+
+            <div id="responseArea" class="flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-gray-300 overflow-auto">
+                Select a request and click Run.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for creating new request -->
+<div id="createRequestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Create New Request</h2>
+        <form id="createRequestForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Name</label>
+                <input type="text" id="newRequestName" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Method</label>
+                <select id="newRequestMethod" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">URL</label>
+                <input type="text" id="newRequestUrl" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" placeholder="https://api.example.com" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Body (JSON)</label>
+                <textarea id="newRequestBody" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="3" placeholder='{"key": "value"}'></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Headers (JSON)</label>
+                <textarea id="newRequestHeaders" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="2" placeholder='{"Authorization": "Bearer token"}'></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Collection</label>
+                <select id="newRequestCollection" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+                    <option value="">No Collection</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="hideCreateRequestModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for importing collection -->
+<div id="importCollectionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Import Collection</h2>
+        <form id="importCollectionForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Upload Postman Collection JSON File</label>
+                <input type="file" id="importFile" accept=".json" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Or Paste JSON</label>
+                <textarea id="importJson" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="5" placeholder='Paste Postman collection JSON here...'></textarea>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="hideImportCollectionModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded">Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for exporting collection -->
+<div id="exportCollectionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Export Collection</h2>
+        <form id="exportCollectionForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Select Collection</label>
+                <select id="exportCollectionSelect" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+                    <option value="">Select a collection...</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="hideExportCollectionModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded">Export</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for managing environments -->
+<div id="manageEnvironmentsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">Manage Environments</h2>
+        <div id="environmentsList" class="space-y-2 mb-4">
+            <div class="text-center text-gray-500">Loading...</div>
+        </div>
+        <button onclick="showCreateEnvironmentModal()" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2 rounded">+ New Environment</button>
+        <div class="flex justify-end mt-4">
+            <button onclick="hideManageEnvironmentsModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for creating/editing environment -->
+<div id="createEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 id="environmentModalTitle" class="text-xl font-bold mb-4">Create Environment</h2>
+        <form id="createEnvironmentForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Name</label>
+                <input type="text" id="environmentName" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Variables (JSON)</label>
+                <textarea id="environmentVariables" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="5" placeholder='{"BASE_URL": "https://api.example.com", "API_KEY": "your-key"}'></textarea>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="hideCreateEnvironmentModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3000';
+    let currentRequestId = null;
+    let isEditMode = false;
+    let currentCollectionId = null;
+
+    // 1. Загрузка списка запросов
+    async function loadRequests(collectionId = null) {
+        const list = document.getElementById('requestsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Updating...</div>';
+
+        try {
+            const url = collectionId ? `${API_URL}/requests?collectionId=${collectionId}` : `${API_URL}/requests`;
+            const res = await fetch(url);
+            const requests = await res.json();
+
+            list.innerHTML = '';
+            requests.forEach(req => {
+                const methodColor = getMethodColor(req.method);
+                const el = document.createElement('div');
+                el.className = 'cursor-pointer p-3 rounded hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-600 group';
+                el.onclick = () => selectRequest(req);
+                el.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs ${methodColor} w-12">${req.method}</span>
+                        <span class="text-sm font-medium truncate flex-1 ml-2 text-gray-300 group-hover:text-white">${req.name}</span>
+                        <button onclick="event.stopPropagation(); deleteRequest(${req.id});" class="text-red-500 hover:text-red-400 text-xs ml-2">🗑️</button>
+                    </div>
+                    <div class="text-xs text-gray-500 truncate mt-1 ml-14">${req.url}</div>
+                    <div class="text-xs text-gray-500 mt-1 ml-14">${req.collection ? `Collection: ${req.collection.name}` : 'No Collection'}</div>
+                `;
+                list.appendChild(el);
+            });
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error connecting to backend.<br>Did you enable CORS?</div>`;
+        }
+    }
+
+    // 2. Выбор запроса
+    function selectRequest(req) {
+        currentRequestId = req.id;
+        document.getElementById('urlInput').value = req.url;
+
+        const badge = document.getElementById('methodBadge');
+        badge.textContent = req.method;
+        badge.className = `px-3 py-1 rounded font-mono font-bold text-sm text-gray-900 ${getMethodColorBg(req.method)}`;
+
+        // Display mode
+        document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
+        document.getElementById('requestHeadersDisplay').textContent = req.headers ? JSON.stringify(req.headers, null, 2) : '// No Headers';
+
+        // Edit mode (populate textareas)
+        document.getElementById('requestBodyEdit').value = req.body ? JSON.stringify(req.body, null, 2) : '';
+        document.getElementById('requestHeadersEdit').value = req.headers ? JSON.stringify(req.headers, null, 2) : '';
+
+        // Очистка ответа
+        document.getElementById('responseArea').textContent = 'Ready to run.';
+        document.getElementById('statusBadge').classList.add('hidden');
+
+        // Показать кнопку редактирования
+        document.getElementById('editBtn').classList.remove('hidden');
+    }
+
+    // 3. Запуск запроса (Run)
+    async function runCurrentRequest() {
+        if (!currentRequestId) return;
+
+        const runBtn = document.getElementById('runBtn');
+        const responseArea = document.getElementById('responseArea');
+        const statusBadge = document.getElementById('statusBadge');
+        const timer = document.getElementById('timer');
+        const envId = document.getElementById('environmentSelect').value;
+
+        runBtn.disabled = true;
+        runBtn.innerHTML = '⏳ Running...';
+        responseArea.innerHTML = '<span class="animate-pulse">Waiting for worker...</span>';
+        statusBadge.classList.add('hidden');
+        timer.classList.remove('hidden');
+
+        try {
+            // Создаем Run with environment
+            const url = envId ? `${API_URL}/runs/requests/${currentRequestId}/run?environmentId=${envId}` : `${API_URL}/runs/requests/${currentRequestId}/run`;
+            const res = await fetch(url, { method: 'POST' });
+            const initialRun = await res.json();
+
+            // Начинаем поллинг (опрос статуса)
+            pollStatus(initialRun.id);
+
+        } catch (err) {
+            responseArea.textContent = 'Error: ' + err.message;
+            runBtn.disabled = false;
+            runBtn.innerHTML = '▶ Run';
+        }
+    }
+
+    // 4. Поллинг статуса
+    async function pollStatus(runId) {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_URL}/runs/${runId}`);
+                const run = await res.json();
+
+                if (run.status === 'SUCCESS' || run.status === 'ERROR') {
+                    clearInterval(interval);
+                    displayResult(run);
+                    document.getElementById('runBtn').disabled = false;
+                    document.getElementById('runBtn').innerHTML = '▶ Run';
+                }
+            } catch (e) {
+                console.error('Polling error', e);
+            }
+        }, 500); // Опрос каждые 500мс
+    }
+
+    function displayResult(run) {
+        const area = document.getElementById('responseArea');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusValue = document.getElementById('statusValue');
+        const timerValue = document.getElementById('timerValue');
+
+        statusBadge.classList.remove('hidden');
+
+        if (run.status === 'SUCCESS') {
+            statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-200 border border-green-700';
+            statusValue.textContent = `${run.responseStatus} OK`;
+            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-green-300 overflow-auto';
+            area.textContent = JSON.stringify(run.responseBody, null, 2);
+        } else {
+            statusBadge.className = 'text-xs px-2 py-1 rounded bg-red-900 text-red-200 border border-red-700';
+            statusValue.textContent = 'ERROR';
+            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-red-400 overflow-auto';
+            area.textContent = JSON.stringify({ error: run.error }, null, 2);
+        }
+
+        timerValue.textContent = `${run.durationMs}ms`;
+    }
+
+    // Хелперы для цветов
+    function getMethodColor(m) {
+        if(m === 'GET') return 'text-blue-400';
+        if(m === 'POST') return 'text-green-400';
+        if(m === 'DELETE') return 'text-red-400';
+        return 'text-gray-400';
+    }
+    function getMethodColorBg(m) {
+        if(m === 'GET') return 'bg-blue-500';
+        if(m === 'POST') return 'bg-green-500';
+        if(m === 'DELETE') return 'bg-red-500';
+        return 'bg-gray-500';
+    }
+
+    // Collections
+    function showRequests() {
+        currentCollectionId = null; // Reset filter
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('requestsList').classList.remove('hidden');
+        document.getElementById('collectionsList').classList.add('hidden');
+        loadRequests(); // Reload to show all
+    }
+
+    function showCollectionRequests() {
+        if (!currentCollectionId) {
+            alert('Please select a collection first.');
+            return;
+        }
+
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('requestsList').classList.remove('hidden');
+        document.getElementById('collectionsList').classList.add('hidden');
+        loadRequests(currentCollectionId); // Load filtered requests
+    }
+
+    function showCollections() {
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
+        document.getElementById('requestsList').classList.add('hidden');
+        document.getElementById('collectionsList').classList.remove('hidden');
+        loadCollections();
+    }
+
+    async function loadCollections() {
+        const list = document.getElementById('collectionsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
+
+        try {
+            const res = await fetch(`${API_URL}/collections`);
+            const collections = await res.json();
+
+            list.innerHTML = '';
+            collections.forEach(col => {
+                const el = document.createElement('div');
+                el.className = 'cursor-pointer p-3 rounded hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-600 group';
+                el.onclick = () => selectCollection(col);
+                el.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-sm text-gray-300 group-hover:text-white">📁 ${col.name}</span>
+                        <button onclick="event.stopPropagation(); deleteCollection(${col.id});" class="text-red-500 hover:text-red-400 text-xs ml-2">🗑️</button>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">${col.requests ? col.requests.length : 0} requests</div>
+                `;
+                list.appendChild(el);
+            });
+            // Add the create button back
+            const createBtn = document.createElement('button');
+            createBtn.onclick = () => showCreateCollectionModal();
+            createBtn.className = 'w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded mt-4';
+            createBtn.textContent = '+ New Collection';
+            list.appendChild(createBtn);
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading collections.</div>`;
+        }
+    }
+
+    function selectCollection(col) {
+        currentCollectionId = col.id;
+        showCollectionRequests(); // Switch to collection requests tab
+    }
+
+    function deleteCollection(id) {
+        if (confirm('Are you sure you want to delete this collection?')) {
+            fetch(`${API_URL}/collections/${id}`, { method: 'DELETE' })
+                .then(res => {
+                    if (res.ok) {
+                        loadCollections();
+                        loadRequests(); // Refresh the requests list as well
+                    } else {
+                        alert('Error deleting collection');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    function deleteRequest(id) {
+        if (confirm('Are you sure you want to delete this request?')) {
+            fetch(`${API_URL}/requests/${id}`, { method: 'DELETE' })
+                .then(res => {
+                    if (res.ok) {
+                        loadRequests();
+                        if (currentRequestId === id) {
+                            // Clear selection if the deleted request was selected
+                            currentRequestId = null;
+                            document.getElementById('urlInput').value = '';
+                            document.getElementById('methodBadge').textContent = 'METHOD';
+                            document.getElementById('requestBodyDisplay').textContent = 'Select a request...';
+                            document.getElementById('requestHeadersDisplay').textContent = '';
+                            document.getElementById('responseArea').textContent = 'Select a request and click Run.';
+                            document.getElementById('statusBadge').classList.add('hidden');
+                            document.getElementById('editBtn').classList.add('hidden');
+                        }
+                    } else {
+                        alert('Error deleting request');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    function showCreateCollectionModal() {
+        const name = prompt('Enter collection name:');
+        if (name) {
+            createCollection(name);
+        }
+    }
+
+    async function createCollection(name) {
+        try {
+            const res = await fetch(`${API_URL}/collections`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                loadCollections();
+            } else {
+                alert('Error creating collection');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Environments
+    async function loadEnvironments() {
+        const list = document.getElementById('environmentsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
+
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            list.innerHTML = '';
+            environments.forEach(env => {
+                const el = document.createElement('div');
+                el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
+                el.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-300">${env.name}</span>
+                        <div class="space-x-2">
+                            <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
+                            <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
+        }
+    }
+
+    function showManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.remove('hidden');
+        loadEnvironments();
+    }
+
+    function hideManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.add('hidden');
+    }
+
+    function showCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.remove('hidden');
+        document.getElementById('environmentModalTitle').textContent = 'Create Environment';
+        document.getElementById('createEnvironmentForm').reset();
+        document.getElementById('createEnvironmentForm').onsubmit = createEnvironment;
+    }
+
+    function hideCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.add('hidden');
+    }
+
+    function editEnvironment(id, name, variablesStr) {
+        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        document.getElementById('environmentName').value = name;
+        document.getElementById('environmentVariables').value = JSON.stringify(variables, null, 2);
+        document.getElementById('environmentModalTitle').textContent = 'Edit Environment';
+        document.getElementById('createEnvironmentForm').onsubmit = (e) => {
+            e.preventDefault();
+            updateEnvironment(id);
+        };
+        showCreateEnvironmentModal();
+    }
+
+    async function updateEnvironment(id) {
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                // Reload the select
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error updating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    function deleteEnvironment(id) {
+        if (confirm('Are you sure you want to delete this environment?')) {
+            fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
+                .then(res => {
+                    if (res.ok) {
+                        loadEnvironments();
+                        loadEnvironmentsForSelect();
+                    } else {
+                        alert('Error deleting environment');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    async function createEnvironment(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error creating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Update the loadEnvironments function to also update the select
+    async function loadEnvironmentsForSelect() {
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            const select = document.getElementById('environmentSelect');
+            select.innerHTML = '<option value="">No Environment</option>';
+            environments.forEach(env => {
+                const option = document.createElement('option');
+                option.value = env.id;
+                option.textContent = env.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading environments for select:', err);
+        }
+    }
+
+    // Инит
+    loadRequests();
+    loadEnvironmentsForSelect();
+
+    // Create Request Modal
+    const createRequestModal = document.getElementById('createRequestModal');
+    const createRequestForm = document.getElementById('createRequestForm');
+
+    function showCreateRequestModal() {
+        createRequestModal.classList.remove('hidden');
+        loadCollectionsForModal();
+    }
+
+    function hideCreateRequestModal() {
+        createRequestModal.classList.add('hidden');
+        createRequestForm.reset();
+    }
+
+    async function loadCollectionsForModal() {
+        const select = document.getElementById('newRequestCollection');
+        select.innerHTML = '<option value="">No Collection</option>';
+
+        try {
+            const res = await fetch(`${API_URL}/collections`);
+            const collections = await res.json();
+
+            collections.forEach(col => {
+                const option = document.createElement('option');
+                option.value = col.id;
+                option.textContent = col.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading collections:', err);
+        }
+    }
+
+    createRequestForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('newRequestName').value;
+        const method = document.getElementById('newRequestMethod').value;
+        const url = document.getElementById('newRequestUrl').value;
+        const bodyText = document.getElementById('newRequestBody').value.trim();
+        const headersText = document.getElementById('newRequestHeaders').value.trim();
+        const collectionId = document.getElementById('newRequestCollection').value;
+
+        let body = null;
+        let headers = null;
+
+        try {
+            if (bodyText) body = JSON.parse(bodyText);
+            if (headersText) headers = JSON.parse(headersText);
+        } catch (e) {
+            alert('Invalid JSON in body or headers');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/requests`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, method, url, body, headers, collectionId })
+            });
+            if (res.ok) {
+                const newRequest = await res.json();
+                loadRequests();
+                hideCreateRequestModal();
+                selectRequest(newRequest);
+            } else {
+                alert('Error creating request');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Import/Export Modals
+    const importCollectionModal = document.getElementById('importCollectionModal');
+    const exportCollectionModal = document.getElementById('exportCollectionModal');
+
+    function showImportCollectionModal() {
+        importCollectionModal.classList.remove('hidden');
+    }
+
+    function hideImportCollectionModal() {
+        importCollectionModal.classList.add('hidden');
+    }
+
+    function showExportCollectionModal() {
+        loadCollectionsForExport();
+        exportCollectionModal.classList.remove('hidden');
+    }
+
+    function hideExportCollectionModal() {
+        exportCollectionModal.classList.add('hidden');
+    }
+
+    async function loadCollectionsForExport() {
+        const select = document.getElementById('exportCollectionSelect');
+        select.innerHTML = '<option value="">Select a collection...</option>';
+
+        try {
+            const res = await fetch(`${API_URL}/collections`);
+            const collections = await res.json();
+
+            collections.forEach(col => {
+                const option = document.createElement('option');
+                option.value = col.id;
+                option.textContent = col.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading collections for export:', err);
+        }
+    }
+
+    // Handle Import Collection
+    document.getElementById('importCollectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('importFile');
+        const jsonInput = document.getElementById('importJson');
+
+        let jsonData = null;
+
+        // Если загружен файл, читаем его
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const content = e.target.result;
+                try {
+                    jsonData = JSON.parse(content);
+                    await importCollectionData(jsonData);
+                    hideImportCollectionModal();
+                } catch (err) {
+                    alert('Error parsing JSON file: ' + err.message);
+                }
+            };
+
+            reader.readAsText(file);
+        } else if (jsonInput.value.trim() !== '') {
+            // Или, если есть текст в поле, парсим его
+            try {
+                jsonData = JSON.parse(jsonInput.value);
+                await importCollectionData(jsonData);
+                hideImportCollectionModal();
+            } catch (err) {
+                alert('Error parsing JSON: ' + err.message);
+            }
+        } else {
+            alert('Please upload a file or enter JSON data.');
+        }
+    };
+
+    async function importCollectionData(data) {
+        try {
+            const res = await fetch(`${API_URL}/collections/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const result = await res.json();
+                alert('Collection imported successfully!');
+                loadCollections();
+            } else {
+                alert('Error importing collection');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Handle Export Collection
+    document.getElementById('exportCollectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const select = document.getElementById('exportCollectionSelect');
+        const collectionId = select.value;
+
+        if (!collectionId) {
+            alert('Please select a collection to export.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/collections/${collectionId}/export`);
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'collection.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                alert('Collection exported successfully!');
+            } else {
+                alert('Error exporting collection');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Manage Environments
+    async function loadEnvironments() {
+        const list = document.getElementById('environmentsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
+
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            list.innerHTML = '';
+            environments.forEach(env => {
+                const el = document.createElement('div');
+                el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
+                el.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-300">${env.name}</span>
+                        <div class="space-x-2">
+                            <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
+                            <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
+        }
+    }
+
+    function showManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.remove('hidden');
+        loadEnvironments();
+    }
+
+    function hideManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.add('hidden');
+    }
+
+    function showCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.remove('hidden');
+        document.getElementById('environmentModalTitle').textContent = 'Create Environment';
+        document.getElementById('createEnvironmentForm').reset();
+        document.getElementById('createEnvironmentForm').onsubmit = createEnvironment;
+    }
+
+    function hideCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.add('hidden');
+    }
+
+    function editEnvironment(id, name, variablesStr) {
+        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        document.getElementById('environmentName').value = name;
+        document.getElementById('environmentVariables').value = JSON.stringify(variables, null, 2);
+        document.getElementById('environmentModalTitle').textContent = 'Edit Environment';
+        document.getElementById('createEnvironmentForm').onsubmit = (e) => {
+            e.preventDefault();
+            updateEnvironment(id);
+        };
+        showCreateEnvironmentModal();
+    }
+
+    async function updateEnvironment(id) {
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                // Reload the select
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error updating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    function deleteEnvironment(id) {
+        if (confirm('Are you sure you want to delete this environment?')) {
+            fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
+                .then(res => {
+                    if (res.ok) {
+                        loadEnvironments();
+                        loadEnvironmentsForSelect();
+                    } else {
+                        alert('Error deleting environment');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    async function createEnvironment(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error creating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Update the loadEnvironments function to also update the select
+    async function loadEnvironmentsForSelect() {
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            const select = document.getElementById('environmentSelect');
+            select.innerHTML = '<option value="">No Environment</option>';
+            environments.forEach(env => {
+                const option = document.createElement('option');
+                option.value = env.id;
+                option.textContent = env.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading environments for select:', err);
+        }
+    }
+
+    // Инит
+    loadRequests();
+    loadEnvironmentsForSelect();
+
+    // Create Request Modal
+    const createRequestModal = document.getElementById('createRequestModal');
+    const createRequestForm = document.getElementById('createRequestForm');
+
+    function showCreateRequestModal() {
+        createRequestModal.classList.remove('hidden');
+        loadCollectionsForModal();
+    }
+
+    function hideCreateRequestModal() {
+        createRequestModal.classList.add('hidden');
+        createRequestForm.reset();
+    }
+
+    async function loadCollectionsForModal() {
+        const select = document.getElementById('newRequestCollection');
+        select.innerHTML = '<option value="">No Collection</option>';
+
+        try {
+            const res = await fetch(`${API_URL}/collections`);
+            const collections = await res.json();
+
+            collections.forEach(col => {
+                const option = document.createElement('option');
+                option.value = col.id;
+                option.textContent = col.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading collections:', err);
+        }
+    }
+
+    createRequestForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('newRequestName').value;
+        const method = document.getElementById('newRequestMethod').value;
+        const url = document.getElementById('newRequestUrl').value;
+        const bodyText = document.getElementById('newRequestBody').value.trim();
+        const headersText = document.getElementById('newRequestHeaders').value.trim();
+        const collectionId = document.getElementById('newRequestCollection').value;
+
+        let body = null;
+        let headers = null;
+
+        try {
+            if (bodyText) body = JSON.parse(bodyText);
+            if (headersText) headers = JSON.parse(headersText);
+        } catch (e) {
+            alert('Invalid JSON in body or headers');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/requests`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, method, url, body, headers, collectionId })
+            });
+            if (res.ok) {
+                const newRequest = await res.json();
+                loadRequests();
+                hideCreateRequestModal();
+                selectRequest(newRequest);
+            } else {
+                alert('Error creating request');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Import/Export Modals
+    const importCollectionModal = document.getElementById('importCollectionModal');
+    const exportCollectionModal = document.getElementById('exportCollectionModal');
+
+    function showImportCollectionModal() {
+        importCollectionModal.classList.remove('hidden');
+    }
+
+    function hideImportCollectionModal() {
+        importCollectionModal.classList.add('hidden');
+    }
+
+    function showExportCollectionModal() {
+        loadCollectionsForExport();
+        exportCollectionModal.classList.remove('hidden');
+    }
+
+    function hideExportCollectionModal() {
+        exportCollectionModal.classList.add('hidden');
+    }
+
+    async function loadCollectionsForExport() {
+        const select = document.getElementById('exportCollectionSelect');
+        select.innerHTML = '<option value="">Select a collection...</option>';
+
+        try {
+            const res = await fetch(`${API_URL}/collections`);
+            const collections = await res.json();
+
+            collections.forEach(col => {
+                const option = document.createElement('option');
+                option.value = col.id;
+                option.textContent = col.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading collections for export:', err);
+        }
+    }
+
+    // Handle Import Collection
+    document.getElementById('importCollectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('importFile');
+        const jsonInput = document.getElementById('importJson');
+
+        let jsonData = null;
+
+        // Если загружен файл, читаем его
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const content = e.target.result;
+                try {
+                    jsonData = JSON.parse(content);
+                    await importCollectionData(jsonData);
+                    hideImportCollectionModal();
+                } catch (err) {
+                    alert('Error parsing JSON file: ' + err.message);
+                }
+            };
+
+            reader.readAsText(file);
+        } else if (jsonInput.value.trim() !== '') {
+            // Или, если есть текст в поле, парсим его
+            try {
+                jsonData = JSON.parse(jsonInput.value);
+                await importCollectionData(jsonData);
+                hideImportCollectionModal();
+            } catch (err) {
+                alert('Error parsing JSON: ' + err.message);
+            }
+        } else {
+            alert('Please upload a file or enter JSON data.');
+        }
+    };
+
+    async function importCollectionData(data) {
+        try {
+            const res = await fetch(`${API_URL}/collections/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const result = await res.json();
+                alert('Collection imported successfully!');
+                loadCollections();
+            } else {
+                alert('Error importing collection');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Handle Export Collection
+    document.getElementById('exportCollectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const select = document.getElementById('exportCollectionSelect');
+        const collectionId = select.value;
+
+        if (!collectionId) {
+            alert('Please select a collection to export.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/collections/${collectionId}/export`);
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'collection.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                alert('Collection exported successfully!');
+            } else {
+                alert('Error exporting collection');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Manage Environments
+    async function loadEnvironments() {
+        const list = document.getElementById('environmentsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
+
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            list.innerHTML = '';
+            environments.forEach(env => {
+                const el = document.createElement('div');
+                el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
+                el.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-300">${env.name}</span>
+                        <div class="space-x-2">
+                            <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
+                            <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
+        }
+    }
+
+    function showManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.remove('hidden');
+        loadEnvironments();
+    }
+
+    function hideManageEnvironmentsModal() {
+        document.getElementById('manageEnvironmentsModal').classList.add('hidden');
+    }
+
+    function showCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.remove('hidden');
+        document.getElementById('environmentModalTitle').textContent = 'Create Environment';
+        document.getElementById('createEnvironmentForm').reset();
+        document.getElementById('createEnvironmentForm').onsubmit = createEnvironment;
+    }
+
+    function hideCreateEnvironmentModal() {
+        document.getElementById('createEnvironmentModal').classList.add('hidden');
+    }
+
+    function editEnvironment(id, name, variablesStr) {
+        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        document.getElementById('environmentName').value = name;
+        document.getElementById('environmentVariables').value = JSON.stringify(variables, null, 2);
+        document.getElementById('environmentModalTitle').textContent = 'Edit Environment';
+        document.getElementById('createEnvironmentForm').onsubmit = (e) => {
+            e.preventDefault();
+            updateEnvironment(id);
+        };
+        showCreateEnvironmentModal();
+    }
+
+    async function updateEnvironment(id) {
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                // Reload the select
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error updating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    function deleteEnvironment(id) {
+        if (confirm('Are you sure you want to delete this environment?')) {
+            fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
+                .then(res => {
+                    if (res.ok) {
+                        loadEnvironments();
+                        loadEnvironmentsForSelect();
+                    } else {
+                        alert('Error deleting environment');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    async function createEnvironment(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('environmentName').value;
+        const variablesText = document.getElementById('environmentVariables').value.trim();
+
+        let variables = {};
+
+        try {
+            if (variablesText) variables = JSON.parse(variablesText);
+        } catch (e) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, variables })
+            });
+            if (res.ok) {
+                loadEnvironments();
+                hideCreateEnvironmentModal();
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error creating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Update the loadEnvironments function to also update the select
+    async function loadEnvironmentsForSelect() {
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            const select = document.getElementById('environmentSelect');
+            select.innerHTML = '<option value="">No Environment</option>';
+            environments.forEach(env => {
+                const option = document.createElement('option');
+                option.value = env.id;
+                option.textContent = env.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading environments for select:', err);
+        }
+    }
+
+    // Инит
+    loadRequests();
+    loadEnvironmentsForSelect();
+</script>
+</body>
+</html>
+
+
+

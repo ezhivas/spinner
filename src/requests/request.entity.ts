@@ -41,11 +41,14 @@ export class RequestEntity {
   @Column({ type: 'jsonb', nullable: true })
   body: any;
 
+  @Column({ nullable: true })
+  collectionId?: number;
+
   @ManyToOne(() => CollectionEntity, (collection) => collection.requests, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
   })
-  collection?: CollectionEntity;
+  collection?: CollectionEntity | null;
 
   @CreateDateColumn()
   createdAt: Date;

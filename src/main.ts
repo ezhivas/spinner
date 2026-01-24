@@ -6,9 +6,14 @@ import { startRunsWorker } from './runs/runs.worker';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExecutorService } from './http-executor/http-executor.service';
 import { VariableResolverService } from './environments/variable-resolver.service';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Increase payload limit for JSON and URL-encoded requests
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Global logging
   app.useGlobalInterceptors(new LoggingInterceptor());
@@ -33,6 +38,8 @@ async function bootstrap() {
   } catch (error) {
     console.error('Failed to start runs worker:', error);
   }
+
+  app.enableCors();
 
   await app.listen(3000);
 }

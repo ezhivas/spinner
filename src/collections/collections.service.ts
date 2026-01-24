@@ -19,13 +19,13 @@ export class CollectionsService {
   }
 
   async findAll(): Promise<CollectionEntity[]> {
-    return this.collectionRepo.find({ relations: ['requests'] });
+    return this.collectionRepo.find({ relations: ['requests', 'requests.collection'] });
   }
 
   async findOne(id: number): Promise<CollectionEntity | null> {
     return this.collectionRepo.findOne({
       where: { id },
-      relations: ['requests'],
+      relations: ['requests', 'requests.collection'],
     });
   }
 
@@ -63,13 +63,34 @@ export class CollectionsService {
       if (item.request) {
         // It's a request
         const req = item.request;
+        let body: string | null = null;
+        if (req.body) {
+          if (req.body.mode === 'raw') {
+            body = req.body.raw;
+          } else if (req.body.mode === 'formdata') {
+            // Convert formdata to JSON object
+            const formdata = req.body.formdata?.reduce((acc, f) => {
+              acc[f.key] = f.value;
+              return acc;
+            }, {}) || {};
+            body = JSON.stringify(formdata);
+          } else if (req.body.mode === 'urlencoded') {
+            // Similar to formdata
+            const urlencoded = req.body.urlencoded?.reduce((acc, u) => {
+              acc[u.key] = u.value;
+              return acc;
+            }, {}) || {};
+            body = JSON.stringify(urlencoded);
+          }
+          // Other modes like file, graphql can be handled later
+        }
         requests.push({
           name: item.name,
           method: req.method,
           url: typeof req.url === 'string' ? req.url : req.url?.raw || '',
           headers: req.header?.reduce((acc, h) => ({ ...acc, [h.key]: h.value }), {}) || {},
           queryParams: req.url?.query?.reduce((acc, q) => ({ ...acc, [q.key]: q.value }), {}) || {},
-          body: req.body?.raw || null,
+          body,
         });
       } else if (item.item) {
         // It's a folder, recurse

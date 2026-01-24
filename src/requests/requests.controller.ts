@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { RequestsService } from './requests.service';
@@ -25,8 +26,8 @@ export class RequestsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all requests' })
-  findAll() {
-    return this.service.findAll();
+  findAll(@Query('collectionId') collectionId?: string) {
+    return this.service.findAll(collectionId ? +collectionId : undefined);
   }
 
   @Get(':id')
