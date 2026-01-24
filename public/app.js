@@ -1,7 +1,56 @@
     const API_URL = 'http://localhost:3000';
     let currentRequestId = null;
+    let currentRequest = null; // Store full request data
     let isEditMode = false;
     let currentCollectionId = null;
+
+    // Form-Data utilities
+    function addFormDataField(containerId, key = '', value = '') {
+        const container = document.getElementById(containerId);
+        const fieldId = `field-${Date.now()}-${Math.random()}`;
+
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'flex gap-2 items-center';
+        fieldDiv.id = fieldId;
+        fieldDiv.innerHTML = `
+            <input type="text" placeholder="Key" value="${key}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-key">
+            <input type="text" placeholder="Value" value="${value}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-value">
+            <button type="button" onclick="document.getElementById('${fieldId}').remove()" class="text-red-500 hover:text-red-400 text-sm px-2">✕</button>
+        `;
+        container.appendChild(fieldDiv);
+    }
+
+    function getFormDataFromFields(containerId) {
+        const container = document.getElementById(containerId);
+        const fields = container.querySelectorAll('.flex');
+        const formData = {};
+
+        fields.forEach(field => {
+            const key = field.querySelector('.form-data-key')?.value.trim();
+            const value = field.querySelector('.form-data-value')?.value;
+            if (key) {
+                formData[key] = value;
+            }
+        });
+
+        return formData;
+    }
+
+    function loadFormDataFields(containerId, data) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        if (data && typeof data === 'object') {
+            Object.entries(data).forEach(([key, value]) => {
+                addFormDataField(containerId, key, value);
+            });
+        }
+
+        // Add one empty field if no data
+        if (!data || Object.keys(data).length === 0) {
+            addFormDataField(containerId);
+        }
+    }
 
     // 1. Загрузка списка запросов
     async function loadRequests(collectionId = null) {
@@ -38,19 +87,32 @@
     // 2. Выбор запроса
     function selectRequest(req) {
         currentRequestId = req.id;
+        currentRequest = req; // Store full request data
         document.getElementById('urlInput').value = req.url;
 
         const badge = document.getElementById('methodBadge');
         badge.textContent = req.method;
         badge.className = `px-3 py-1 rounded font-mono font-bold text-sm text-gray-900 ${getMethodColorBg(req.method)}`;
 
+        // Detect body type
+        const bodyType = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? 'form-data' : 'json';
+        document.getElementById('bodyTypeValue').textContent = bodyType === 'form-data' ? 'Form-Data' : 'JSON';
+
         // Display mode
-        document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
+        document.getElementById('requestQueryParamsDisplay').textContent = req.queryParams ? JSON.stringify(req.queryParams, null, 2) : '// No Query Params';
+
+        if (bodyType === 'form-data') {
+            document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
+        } else {
+            document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
+        }
+
         document.getElementById('requestHeadersDisplay').textContent = req.headers ? JSON.stringify(req.headers, null, 2) : '// No Headers';
 
         // Edit mode (populate textareas)
-        document.getElementById('requestBodyEdit').value = req.body ? JSON.stringify(req.body, null, 2) : '';
-        document.getElementById('requestHeadersEdit').value = req.headers ? JSON.stringify(req.headers, null, 2) : '';
+        queryParamsEditor.setValue(req.queryParams ? JSON.stringify(req.queryParams, null, 2) : '');
+        bodyEditor.setValue(req.body ? JSON.stringify(req.body, null, 2) : '');
+        headersEditor.setValue(req.headers ? JSON.stringify(req.headers, null, 2) : '');
 
         // Очистка ответа
         document.getElementById('responseArea').textContent = 'Ready to run.';
@@ -151,11 +213,13 @@
     // Collections
     function showRequests() {
         currentCollectionId = null; // Reset filter
-        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
-        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
-        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold text-xs';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('runsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
         document.getElementById('requestsList').classList.remove('hidden');
         document.getElementById('collectionsList').classList.add('hidden');
+        document.getElementById('runsList').classList.add('hidden');
         loadRequests(); // Reload to show all
     }
 
@@ -165,21 +229,36 @@
             return;
         }
 
-        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
-        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
-        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold text-xs';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('runsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
         document.getElementById('requestsList').classList.remove('hidden');
         document.getElementById('collectionsList').classList.add('hidden');
+        document.getElementById('runsList').classList.add('hidden');
         loadRequests(currentCollectionId); // Load filtered requests
     }
 
     function showCollections() {
-        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
-        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700';
-        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold';
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold text-xs';
+        document.getElementById('runsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
         document.getElementById('requestsList').classList.add('hidden');
         document.getElementById('collectionsList').classList.remove('hidden');
+        document.getElementById('runsList').classList.add('hidden');
         loadCollections();
+    }
+
+    function showRuns() {
+        document.getElementById('requestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionRequestsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('collectionsTab').className = 'flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs';
+        document.getElementById('runsTab').className = 'flex-1 py-2 text-center bg-gray-700 text-white font-bold text-xs';
+        document.getElementById('requestsList').classList.add('hidden');
+        document.getElementById('collectionsList').classList.add('hidden');
+        document.getElementById('runsList').classList.remove('hidden');
+        loadRuns();
     }
 
     async function loadCollections() {
@@ -193,14 +272,17 @@
             list.innerHTML = '';
             collections.forEach(col => {
                 const el = document.createElement('div');
-                el.className = 'cursor-pointer p-3 rounded hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-600 group';
-                el.onclick = () => selectCollection(col);
+                el.className = 'p-3 rounded bg-gray-800 border border-gray-700 mb-2';
                 el.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-sm text-gray-300 group-hover:text-white">📁 ${col.name}</span>
-                        <button onclick="event.stopPropagation(); deleteCollection(${col.id});" class="text-red-500 hover:text-red-400 text-xs ml-2">🗑️</button>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-sm text-gray-300 cursor-pointer hover:text-white" onclick="selectCollection({id: ${col.id}, name: '${col.name.replace(/'/g, "\\'")}'})" >📁 ${col.name}</span>
+                        <div class="flex space-x-1">
+                            <button onclick="viewCollectionDetails(${col.id})" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
+                            <button onclick="editCollection(${col.id}, '${col.name.replace(/'/g, "\\'")}');" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
+                            <button onclick="deleteCollection(${col.id});" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
+                        </div>
                     </div>
-                    <div class="text-xs text-gray-500 mt-1">${col.requests ? col.requests.length : 0} requests</div>
+                    <div class="text-xs text-gray-500">${col.requests ? col.requests.length : 0} requests</div>
                 `;
                 list.appendChild(el);
             });
@@ -232,6 +314,219 @@
                     }
                 })
                 .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    function editCollection(id, currentName) {
+        const newName = prompt('Enter new collection name:', currentName);
+        if (newName && newName !== currentName) {
+            fetch(`${API_URL}/collections/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            })
+            .then(res => {
+                if (res.ok) {
+                    loadCollections();
+                } else {
+                    alert('Error updating collection');
+                }
+            })
+            .catch(err => alert('Error: ' + err.message));
+        }
+    }
+
+    async function viewCollectionDetails(id) {
+        try {
+            const res = await fetch(`${API_URL}/collections/${id}`);
+            if (!res.ok) {
+                alert('Error loading collection');
+                return;
+            }
+
+            const collection = await res.json();
+            document.getElementById('viewCollectionName').textContent = collection.name;
+            document.getElementById('viewCollectionCount').textContent = collection.requests?.length || 0;
+
+            const container = document.getElementById('viewCollectionRequests');
+            container.innerHTML = '';
+
+            if (collection.requests && collection.requests.length > 0) {
+                collection.requests.forEach(req => {
+                    const methodColor = getMethodColor(req.method);
+                    const reqDiv = document.createElement('div');
+                    reqDiv.className = 'p-3 bg-gray-900 rounded border border-gray-700 hover:border-gray-600 cursor-pointer transition-colors';
+                    reqDiv.onclick = () => {
+                        toggleModal('viewCollectionModal', false);
+                        selectRequest(req);
+                        showRequests(); // Switch to requests tab
+                    };
+                    reqDiv.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-xs ${methodColor} w-16">${req.method}</span>
+                            <span class="text-sm font-medium text-gray-300 flex-1 ml-2 truncate">${req.name}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 truncate">${req.url}</div>
+                        ${req.queryParams ? `<div class="text-xs text-blue-400 mt-1">Query Params: ${Object.keys(req.queryParams).length}</div>` : ''}
+                        ${req.body ? `<div class="text-xs text-green-400 mt-1">Has Body</div>` : ''}
+                        ${req.headers ? `<div class="text-xs text-yellow-400 mt-1">Headers: ${Object.keys(req.headers).length}</div>` : ''}
+                    `;
+                    container.appendChild(reqDiv);
+                });
+            } else {
+                container.innerHTML = '<div class="text-gray-500 text-sm text-center py-4">No requests in this collection</div>';
+            }
+
+            toggleModal('viewCollectionModal', true);
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    async function loadRuns() {
+        const list = document.getElementById('runsList');
+        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
+
+        try {
+            const res = await fetch(`${API_URL}/runs`);
+            const runs = await res.json();
+
+            list.innerHTML = '';
+            if (runs.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 mt-10">No runs yet</div>';
+                return;
+            }
+
+            runs.sort((a, b) => b.id - a.id); // Newest first
+            runs.forEach(run => {
+                const el = document.createElement('div');
+                el.className = 'p-3 rounded bg-gray-800 border border-gray-700 mb-2 cursor-pointer hover:border-gray-600 transition-colors';
+                el.onclick = () => viewRunDetails(run.id);
+
+                const statusColor = run.status === 'SUCCESS' ? 'text-green-400' : run.status === 'ERROR' ? 'text-red-400' : 'text-yellow-400';
+                const date = new Date(run.createdAt);
+                const timeAgo = formatTimeAgo(date);
+
+                el.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs ${statusColor} font-bold">${run.status}</span>
+                        <span class="text-xs text-gray-500">${timeAgo}</span>
+                    </div>
+                    <div class="text-sm text-gray-300 font-medium mb-1">${run.request?.name || 'Unknown'}</div>
+                    <div class="text-xs text-gray-500">${run.request?.method || 'GET'} ${run.request?.url || ''}</div>
+                    <div class="text-xs text-gray-400 mt-1">
+                        ${run.responseStatus ? `Status: ${run.responseStatus}` : ''}
+                        ${run.durationMs ? `• ${run.durationMs}ms` : ''}
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        } catch (err) {
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading runs history.</div>`;
+        }
+    }
+
+    function formatTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        if (seconds < 60) return `${seconds}s ago`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+
+    async function viewRunDetails(runId) {
+        try {
+            const res = await fetch(`${API_URL}/runs/${runId}`);
+            if (!res.ok) {
+                alert('Error loading run details');
+                return;
+            }
+
+            const run = await res.json();
+
+            // Set run info
+            document.getElementById('runDetailName').textContent = run.request?.name || 'Unknown Request';
+
+            // Set status badge
+            const statusBadge = document.getElementById('runDetailStatus');
+            if (run.status === 'SUCCESS') {
+                statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-200 border border-green-700';
+                statusBadge.textContent = 'SUCCESS';
+            } else if (run.status === 'ERROR') {
+                statusBadge.className = 'text-xs px-2 py-1 rounded bg-red-900 text-red-200 border border-red-700';
+                statusBadge.textContent = 'ERROR';
+            } else {
+                statusBadge.className = 'text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200 border border-yellow-700';
+                statusBadge.textContent = run.status;
+            }
+
+            // Set time and duration
+            const date = new Date(run.createdAt);
+            document.getElementById('runDetailTime').textContent = `Executed ${formatTimeAgo(date)}`;
+            document.getElementById('runDetailDuration').textContent = run.durationMs ? `Duration: ${run.durationMs}ms` : '';
+
+            // Set request details
+            const methodBadge = document.getElementById('runDetailMethod');
+            const method = run.request?.method || 'GET';
+            methodBadge.textContent = method;
+            methodBadge.className = `px-2 py-1 rounded text-xs font-bold text-gray-900 ${getMethodColorBg(method)}`;
+
+            document.getElementById('runDetailUrl').textContent = run.request?.url || '';
+
+            // Query Params
+            if (run.request?.queryParams && Object.keys(run.request.queryParams).length > 0) {
+                document.getElementById('runDetailQueryParams').classList.remove('hidden');
+                document.getElementById('runDetailQueryParamsContent').textContent = JSON.stringify(run.request.queryParams, null, 2);
+            } else {
+                document.getElementById('runDetailQueryParams').classList.add('hidden');
+            }
+
+            // Body
+            if (run.request?.body) {
+                document.getElementById('runDetailBody').classList.remove('hidden');
+                document.getElementById('runDetailBodyContent').textContent = JSON.stringify(run.request.body, null, 2);
+            } else {
+                document.getElementById('runDetailBody').classList.add('hidden');
+            }
+
+            // Headers
+            if (run.request?.headers && Object.keys(run.request.headers).length > 0) {
+                document.getElementById('runDetailHeaders').classList.remove('hidden');
+                document.getElementById('runDetailHeadersContent').textContent = JSON.stringify(run.request.headers, null, 2);
+            } else {
+                document.getElementById('runDetailHeaders').classList.add('hidden');
+            }
+
+            // Response or Error
+            if (run.status === 'SUCCESS') {
+                document.getElementById('runDetailResponseSection').classList.remove('hidden');
+                document.getElementById('runDetailErrorSection').classList.add('hidden');
+
+                document.getElementById('runDetailResponseStatus').textContent = run.responseStatus || '-';
+                document.getElementById('runDetailResponseBody').textContent = run.responseBody
+                    ? JSON.stringify(run.responseBody, null, 2)
+                    : 'No response body';
+            } else if (run.status === 'ERROR') {
+                document.getElementById('runDetailResponseSection').classList.add('hidden');
+                document.getElementById('runDetailErrorSection').classList.remove('hidden');
+
+                document.getElementById('runDetailError').textContent = run.error || 'Unknown error';
+            }
+
+            // Environment
+            if (run.environment) {
+                document.getElementById('runDetailEnvironment').classList.remove('hidden');
+                document.getElementById('runDetailEnvironmentName').textContent = run.environment.name || 'Unknown Environment';
+            } else {
+                document.getElementById('runDetailEnvironment').classList.add('hidden');
+            }
+
+            toggleModal('viewRunModal', true);
+        } catch (err) {
+            alert('Error: ' + err.message);
         }
     }
 
@@ -298,14 +593,16 @@
                 const el = document.createElement('div');
                 el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
                 el.innerHTML = `
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="font-bold text-gray-300">${env.name}</span>
                         <div class="space-x-2">
                             <button onclick="viewEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
+                            <button onclick="manageEnvironmentVariables(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-purple-400 hover:text-purple-300 text-xs">⚙️ Variables</button>
                             <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
                             <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
                         </div>
                     </div>
+                    <div class="text-xs text-gray-500">${Object.keys(env.variables || {}).length} variables</div>
                 `;
                 list.appendChild(el);
             });
@@ -317,7 +614,24 @@
     function viewEnvironment(id, name, variablesStr) {
         const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
         document.getElementById('viewEnvironmentName').value = name;
-        document.getElementById('viewEnvironmentVariables').textContent = JSON.stringify(variables, null, 2);
+
+        const container = document.getElementById('viewEnvironmentVariables');
+        container.innerHTML = '';
+
+        if (variables && Object.keys(variables).length > 0) {
+            Object.entries(variables).forEach(([key, value]) => {
+                const varDiv = document.createElement('div');
+                varDiv.className = 'flex gap-2 p-2 bg-gray-900 rounded border border-gray-700';
+                varDiv.innerHTML = `
+                    <span class="text-sm text-purple-400 font-medium w-1/3">${key}</span>
+                    <span class="text-sm text-gray-300 flex-1 break-all">${value}</span>
+                `;
+                container.appendChild(varDiv);
+            });
+        } else {
+            container.innerHTML = '<div class="text-gray-500 text-sm">No variables</div>';
+        }
+
         toggleModal('viewEnvironmentModal', true);
     }
 
@@ -339,36 +653,34 @@
         document.getElementById('environmentModalTitle').textContent = 'Create Environment';
         document.getElementById('createEnvironmentForm').reset();
         document.getElementById('createEnvironmentForm').onsubmit = createEnvironment;
+
+        // Initialize with one empty variable field
+        loadFormDataFields('environmentVariablesFields', {});
     }
 
     function hideCreateEnvironmentModal() {
         toggleModal('createEnvironmentModal', false);
+        document.getElementById('environmentVariablesFields').innerHTML = '';
     }
 
     function editEnvironment(id, name, variablesStr) {
         const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
         document.getElementById('environmentName').value = name;
-        document.getElementById('environmentVariables').value = JSON.stringify(variables, null, 2);
+
+        // Load variables into key-value fields
+        loadFormDataFields('environmentVariablesFields', variables);
+
         document.getElementById('environmentModalTitle').textContent = 'Edit Environment';
         document.getElementById('createEnvironmentForm').onsubmit = (e) => {
             e.preventDefault();
             updateEnvironment(id);
         };
-        showCreateEnvironmentModal();
+        toggleModal('createEnvironmentModal', true);
     }
 
     async function updateEnvironment(id) {
         const name = document.getElementById('environmentName').value;
-        const variablesText = document.getElementById('environmentVariables').value.trim();
-
-        let variables = {};
-
-        try {
-            if (variablesText) variables = JSON.parse(variablesText);
-        } catch (e) {
-            alert('Invalid JSON in variables');
-            return;
-        }
+        const variables = getFormDataFromFields('environmentVariablesFields');
 
         try {
             const res = await fetch(`${API_URL}/environments/${id}`, {
@@ -379,10 +691,93 @@
             if (res.ok) {
                 loadEnvironments();
                 hideCreateEnvironmentModal();
-                // Reload the select
                 loadEnvironmentsForSelect();
             } else {
                 alert('Error updating environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Manage individual environment variables
+    let currentManageEnvId = null;
+
+    function manageEnvironmentVariables(id, name, variablesStr) {
+        currentManageEnvId = id;
+        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+
+        document.getElementById('manageVarEnvName').textContent = name;
+        displayManageVariables(variables);
+        toggleModal('manageVariablesModal', true);
+    }
+
+    function displayManageVariables(variables) {
+        const container = document.getElementById('manageVariablesList');
+        container.innerHTML = '';
+
+        if (variables && Object.keys(variables).length > 0) {
+            Object.entries(variables).forEach(([key, value]) => {
+                const varDiv = document.createElement('div');
+                varDiv.className = 'flex gap-2 p-2 bg-gray-900 rounded border border-gray-700 items-center';
+                varDiv.innerHTML = `
+                    <span class="text-sm text-purple-400 font-medium w-1/3 break-all">${key}</span>
+                    <span class="text-sm text-gray-300 flex-1 break-all">${value}</span>
+                    <button onclick="deleteVariable('${key.replace(/'/g, "\\'")}', '${key}')" class="text-red-500 hover:text-red-400 text-sm px-2">✕</button>
+                `;
+                container.appendChild(varDiv);
+            });
+        } else {
+            container.innerHTML = '<div class="text-gray-500 text-sm">No variables yet. Add one below.</div>';
+        }
+    }
+
+    async function addVariable() {
+        const key = document.getElementById('newVarKey').value.trim();
+        const value = document.getElementById('newVarValue').value;
+
+        if (!key) {
+            alert('Please enter a variable name');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${currentManageEnvId}/variables`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [key]: value })
+            });
+
+            if (res.ok) {
+                const updatedEnv = await res.json();
+                displayManageVariables(updatedEnv.variables);
+                document.getElementById('newVarKey').value = '';
+                document.getElementById('newVarValue').value = '';
+                loadEnvironments();
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error adding variable');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    async function deleteVariable(escapedKey, actualKey) {
+        if (!confirm(`Delete variable "${actualKey}"?`)) return;
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${currentManageEnvId}/variables/${encodeURIComponent(actualKey)}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                const updatedEnv = await res.json();
+                displayManageVariables(updatedEnv.variables);
+                loadEnvironments();
+                loadEnvironmentsForSelect();
+            } else {
+                alert('Error deleting variable');
             }
         } catch (err) {
             alert('Error: ' + err.message);
@@ -408,16 +803,7 @@
         e.preventDefault();
 
         const name = document.getElementById('environmentName').value;
-        const variablesText = document.getElementById('environmentVariables').value.trim();
-
-        let variables = {};
-
-        try {
-            if (variablesText) variables = JSON.parse(variablesText);
-        } catch (e) {
-            alert('Invalid JSON in variables');
-            return;
-        }
+        const variables = getFormDataFromFields('environmentVariablesFields');
 
         try {
             const res = await fetch(`${API_URL}/environments`, {
@@ -467,11 +853,26 @@
     function showCreateRequestModal() {
         toggleModal('createRequestModal', true);
         loadCollectionsForModal();
+
+        // Reset body type to JSON
+        document.getElementById('newRequestBodyType').value = 'json';
+        document.getElementById('jsonBodyContainer').classList.remove('hidden');
+        document.getElementById('formDataContainer').classList.add('hidden');
+
+        // Initialize form-data with one empty field
+        loadFormDataFields('formDataFields', {});
+
+        setTimeout(() => {
+            newRequestQueryParamsEditor.refresh();
+            newRequestBodyEditor.refresh();
+            newRequestHeadersEditor.refresh();
+        }, 10);
     }
 
     function hideCreateRequestModal() {
         toggleModal('createRequestModal', false);
         createRequestForm.reset();
+        document.getElementById('formDataFields').innerHTML = '';
     }
 
     async function loadCollectionsForModal() {
@@ -499,18 +900,31 @@
         const name = document.getElementById('newRequestName').value;
         const method = document.getElementById('newRequestMethod').value;
         const url = document.getElementById('newRequestUrl').value;
-        const bodyText = document.getElementById('newRequestBody').value.trim();
-        const headersText = document.getElementById('newRequestHeaders').value.trim();
+        const bodyType = document.getElementById('newRequestBodyType').value;
+        const queryParamsText = newRequestQueryParamsEditor.getValue().trim();
+        const headersText = newRequestHeadersEditor.getValue().trim();
         const collectionId = document.getElementById('newRequestCollection').value;
 
+        let queryParams = null;
         let body = null;
         let headers = null;
 
         try {
-            if (bodyText) body = JSON.parse(bodyText);
+            if (queryParamsText) queryParams = JSON.parse(queryParamsText);
             if (headersText) headers = JSON.parse(headersText);
+
+            // Handle body based on type
+            if (bodyType === 'json') {
+                const bodyText = newRequestBodyEditor.getValue().trim();
+                if (bodyText) body = JSON.parse(bodyText);
+            } else if (bodyType === 'form-data') {
+                const formData = getFormDataFromFields('formDataFields');
+                if (Object.keys(formData).length > 0) {
+                    body = formData;
+                }
+            }
         } catch (e) {
-            alert('Invalid JSON in body or headers');
+            alert('Invalid JSON in query params, body or headers');
             return;
         }
 
@@ -518,7 +932,7 @@
             const res = await fetch(`${API_URL}/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, method, url, body, headers, collectionId })
+                body: JSON.stringify({ name, method, url, queryParams, body, headers, collectionId })
             });
             if (res.ok) {
                 const newRequest = await res.json();
@@ -539,6 +953,10 @@
 
     function showImportCollectionModal() {
         toggleModal('importCollectionModal', true);
+
+        setTimeout(() => {
+            importJsonEditor.refresh();
+        }, 10);
     }
 
     function hideImportCollectionModal() {
@@ -602,7 +1020,7 @@
         } else if (jsonInput.value.trim() !== '') {
             // Или, если есть текст в поле, парсим его
             try {
-                jsonData = JSON.parse(jsonInput.value);
+                jsonData = JSON.parse(importJsonEditor.getValue());
                 await importCollectionData(jsonData);
                 hideImportCollectionModal();
             } catch (err) {
@@ -667,30 +1085,90 @@
 
 
     function toggleEditMode() {
+        if (!currentRequest) return;
+
+        // Make URL input editable and populate with current values
+        const urlInput = document.getElementById('urlInput');
+        urlInput.removeAttribute('readonly');
+        urlInput.classList.add('cursor-text');
+
+        // Make method badge editable - convert to select
+        const methodBadge = document.getElementById('methodBadge');
+        const currentMethod = currentRequest.method;
+        methodBadge.outerHTML = `
+            <select id="methodSelect" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm text-gray-100 cursor-pointer">
+                <option value="GET" ${currentMethod === 'GET' ? 'selected' : ''}>GET</option>
+                <option value="POST" ${currentMethod === 'POST' ? 'selected' : ''}>POST</option>
+                <option value="PUT" ${currentMethod === 'PUT' ? 'selected' : ''}>PUT</option>
+                <option value="DELETE" ${currentMethod === 'DELETE' ? 'selected' : ''}>DELETE</option>
+                <option value="PATCH" ${currentMethod === 'PATCH' ? 'selected' : ''}>PATCH</option>
+            </select>
+        `;
+
+        // Detect body type
+        const isFormData = currentRequest.body && typeof currentRequest.body === 'object' && !Array.isArray(currentRequest.body);
+        const bodyType = isFormData ? 'form-data' : 'json';
+
         // Hide display elements, show edit elements
+        document.getElementById('requestQueryParamsDisplay').classList.add('hidden');
+        document.getElementById('requestQueryParamsEdit').classList.remove('hidden');
+        document.getElementById('bodyTypeDisplay').classList.add('hidden');
         document.getElementById('requestBodyDisplay').classList.add('hidden');
-        document.getElementById('requestBodyEdit').classList.remove('hidden');
+        document.getElementById('requestBodyEditContainer').classList.remove('hidden');
         document.getElementById('requestHeadersDisplay').classList.add('hidden');
         document.getElementById('requestHeadersEdit').classList.remove('hidden');
+
+        // Set body type selector
+        document.getElementById('requestBodyTypeEdit').value = bodyType;
+
+        if (bodyType === 'form-data') {
+            document.getElementById('requestBodyEdit').classList.add('hidden');
+            document.getElementById('requestFormDataEdit').classList.remove('hidden');
+            loadFormDataFields('requestFormDataFields', currentRequest.body);
+        } else {
+            document.getElementById('requestBodyEdit').classList.remove('hidden');
+            document.getElementById('requestFormDataEdit').classList.add('hidden');
+        }
 
         // Hide edit button, show save and discard
         document.getElementById('editBtn').classList.add('hidden');
         document.getElementById('saveBtn').classList.remove('hidden');
         document.getElementById('discardBtn').classList.remove('hidden');
+
+        setTimeout(() => {
+            queryParamsEditor.refresh();
+            bodyEditor.refresh();
+            headersEditor.refresh();
+        }, 10);
     }
 
     function saveChanges() {
-        const bodyText = document.getElementById('requestBodyEdit').value.trim();
-        const headersText = document.getElementById('requestHeadersEdit').value.trim();
+        const method = document.getElementById('methodSelect')?.value || currentRequest.method;
+        const url = document.getElementById('urlInput').value;
+        const bodyType = document.getElementById('requestBodyTypeEdit')?.value || 'json';
+        const queryParamsText = queryParamsEditor.getValue().trim();
+        const headersText = headersEditor.getValue().trim();
 
+        let queryParams = null;
         let body = null;
         let headers = null;
 
         try {
-            if (bodyText) body = JSON.parse(bodyText);
+            if (queryParamsText) queryParams = JSON.parse(queryParamsText);
             if (headersText) headers = JSON.parse(headersText);
+
+            // Handle body based on type
+            if (bodyType === 'json') {
+                const bodyText = bodyEditor.getValue().trim();
+                if (bodyText) body = JSON.parse(bodyText);
+            } else if (bodyType === 'form-data') {
+                const formData = getFormDataFromFields('requestFormDataFields');
+                if (Object.keys(formData).length > 0) {
+                    body = formData;
+                }
+            }
         } catch (e) {
-            alert('Invalid JSON in body or headers');
+            alert('Invalid JSON in query params, body or headers');
             return;
         }
 
@@ -698,24 +1176,56 @@
         fetch(`${API_URL}/requests/${currentRequestId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ body, headers })
+            body: JSON.stringify({ method, url, queryParams, body, headers })
         }).then(res => {
             if (res.ok) {
-                // Update display
-                document.getElementById('requestBodyDisplay').textContent = body ? JSON.stringify(body, null, 2) : '// No Body';
-                document.getElementById('requestHeadersDisplay').textContent = headers ? JSON.stringify(headers, null, 2) : '// No Headers';
-                // Switch back to display mode
-                discardChanges();
+                return res.json();
             } else {
-                alert('Error saving changes');
+                throw new Error('Error saving changes');
             }
+        }).then(updatedRequest => {
+            // Update current request
+            currentRequest = updatedRequest;
+
+            // Update display
+            document.getElementById('requestQueryParamsDisplay').textContent = queryParams ? JSON.stringify(queryParams, null, 2) : '// No Query Params';
+            document.getElementById('requestBodyDisplay').textContent = body ? JSON.stringify(body, null, 2) : '// No Body';
+            document.getElementById('requestHeadersDisplay').textContent = headers ? JSON.stringify(headers, null, 2) : '// No Headers';
+
+            // Update body type display
+            const bodyTypeDisplay = bodyType === 'form-data' ? 'Form-Data' : 'JSON';
+            document.getElementById('bodyTypeValue').textContent = bodyTypeDisplay;
+
+            // Refresh the requests list
+            loadRequests(currentCollectionId);
+
+            // Switch back to display mode
+            discardChanges();
         }).catch(err => alert('Error: ' + err.message));
     }
 
     function discardChanges() {
+        // Restore method badge
+        const methodSelect = document.getElementById('methodSelect');
+        if (methodSelect && currentRequest) {
+            const method = currentRequest.method;
+            methodSelect.outerHTML = `<span id="methodBadge" class="px-3 py-1 rounded font-mono font-bold text-sm text-gray-900 ${getMethodColorBg(method)}">${method}</span>`;
+        }
+
+        // Make URL input readonly again
+        const urlInput = document.getElementById('urlInput');
+        urlInput.setAttribute('readonly', 'readonly');
+        urlInput.classList.remove('cursor-text');
+        if (currentRequest) {
+            urlInput.value = currentRequest.url;
+        }
+
         // Show display, hide edit
+        document.getElementById('requestQueryParamsDisplay').classList.remove('hidden');
+        document.getElementById('requestQueryParamsEdit').classList.add('hidden');
+        document.getElementById('bodyTypeDisplay').classList.remove('hidden');
         document.getElementById('requestBodyDisplay').classList.remove('hidden');
-        document.getElementById('requestBodyEdit').classList.add('hidden');
+        document.getElementById('requestBodyEditContainer').classList.add('hidden');
         document.getElementById('requestHeadersDisplay').classList.remove('hidden');
         document.getElementById('requestHeadersEdit').classList.add('hidden');
 
@@ -740,6 +1250,7 @@
     document.getElementById('requestsTab').addEventListener('click', showRequests);
     document.getElementById('collectionRequestsTab').addEventListener('click', showCollectionRequests);
     document.getElementById('collectionsTab').addEventListener('click', showCollections);
+    document.getElementById('runsTab').addEventListener('click', showRuns);
     document.getElementById('newRequestBtn').addEventListener('click', showCreateRequestModal);
     document.getElementById('newCollectionBtn').addEventListener('click', showCreateCollectionModal);
     document.getElementById('importBtn').addEventListener('click', showImportCollectionModal);
@@ -756,3 +1267,127 @@
     document.getElementById('closeManageEnvironments').addEventListener('click', hideManageEnvironmentsModal);
     document.getElementById('cancelCreateEnvironment').addEventListener('click', hideCreateEnvironmentModal);
     document.getElementById('closeViewEnvironment').addEventListener('click', hideViewEnvironmentModal);
+    document.getElementById('closeManageVariables').addEventListener('click', () => {
+        toggleModal('manageVariablesModal', false);
+        currentManageEnvId = null;
+    });
+    document.getElementById('addNewVariable').addEventListener('click', addVariable);
+    document.getElementById('closeViewCollection').addEventListener('click', () => {
+        toggleModal('viewCollectionModal', false);
+    });
+    document.getElementById('closeViewRun').addEventListener('click', () => {
+        toggleModal('viewRunModal', false);
+    });
+
+    // Body type switching for create modal
+    document.getElementById('newRequestBodyType').addEventListener('change', (e) => {
+        const isFormData = e.target.value === 'form-data';
+        document.getElementById('jsonBodyContainer').classList.toggle('hidden', isFormData);
+        document.getElementById('formDataContainer').classList.toggle('hidden', !isFormData);
+    });
+
+    // Add form-data field buttons
+    document.getElementById('addFormDataField').addEventListener('click', () => {
+        addFormDataField('formDataFields');
+    });
+
+    document.getElementById('addRequestFormDataField').addEventListener('click', () => {
+        addFormDataField('requestFormDataFields');
+    });
+
+    // Add environment variable button
+    document.getElementById('addEnvironmentVariable').addEventListener('click', () => {
+        addFormDataField('environmentVariablesFields');
+    });
+
+    // Body type switching for edit mode
+    document.addEventListener('change', (e) => {
+        if (e.target.id === 'requestBodyTypeEdit') {
+            const isFormData = e.target.value === 'form-data';
+            document.getElementById('requestBodyEdit').classList.toggle('hidden', isFormData);
+            document.getElementById('requestFormDataEdit').classList.toggle('hidden', !isFormData);
+
+            if (isFormData && currentRequest) {
+                loadFormDataFields('requestFormDataFields', currentRequest.body || {});
+            }
+        }
+    });
+
+    // Initialize CodeMirror editors
+    const queryParamsEditor = CodeMirror.fromTextArea(document.getElementById('requestQueryParamsEdit'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const bodyEditor = CodeMirror.fromTextArea(document.getElementById('requestBodyEdit'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const headersEditor = CodeMirror.fromTextArea(document.getElementById('requestHeadersEdit'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const newRequestQueryParamsEditor = CodeMirror.fromTextArea(document.getElementById('newRequestQueryParams'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const newRequestBodyEditor = CodeMirror.fromTextArea(document.getElementById('newRequestBody'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const newRequestHeadersEditor = CodeMirror.fromTextArea(document.getElementById('newRequestHeaders'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+
+    const importJsonEditor = CodeMirror.fromTextArea(document.getElementById('importJson'), {
+        mode: 'application/json',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: Infinity
+    });
+

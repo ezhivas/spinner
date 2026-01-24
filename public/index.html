@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dark API Client</title>
+    <title>SpinneR API Client</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -23,18 +23,49 @@
         }
     </script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <style>
+        .CodeMirror {
+            height: auto;        /* Разрешает блоку расти */
+            min-height: 120px;   /* Задает начальную высоту в ~5 строк */
+            border: 1px solid #373a40;
+        }
+
+        /* Важно: внутренняя область прокрутки тоже должна наследовать минимум,
+           иначе клик по пустой области снизу не сфокусирует редактор */
+        .CodeMirror-scroll {
+            min-height: 120px;
+        }
+        .CodeMirror-gutters {
+            background: #2c2e33;
+            border-right: 1px solid #373a40;
+            color: #888;
+            min-height: 100%;
+        }
+        .CodeMirror-linenumber {
+            color: #888;
+            padding: 0 3px 0 5px;
+            min-width: 20px;
+            text-align: right;
+        }
+        .CodeMirror-lint-marker-error {
+            /* background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAAAAAAENyZWF0ZWQgd2l0aCBHSU1QZC5lBwAAAFBJREFUCNdj/P//PwOgcAVDDGgYQRhBGMIQxhgGGMYwhjFGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxAAAAABJRU5ErkJggg==') no-repeat center; */
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden font-sans">
 
 <div class="w-1/4 bg-gray-800 border-r border-gray-700 flex flex-col">
     <div class="p-4 border-b border-gray-700 font-bold text-xl flex justify-between items-center">
-        <span>🚀 API Client</span>
+        <span>🚀 SpinneR 🚀</span>
         <button id="refreshBtn" class="text-sm bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded">↻</button>
     </div>
     <div class="flex border-b border-gray-700">
-        <button id="requestsTab" class="flex-1 py-2 text-center bg-gray-700 text-white font-bold">Requests</button>
-        <button id="collectionRequestsTab" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700">Collection Requests</button>
-        <button id="collectionsTab" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700">Collections</button>
+        <button id="requestsTab" class="flex-1 py-2 text-center bg-gray-700 text-white font-bold text-xs">Requests</button>
+        <button id="collectionRequestsTab" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs">Collection</button>
+        <button id="collectionsTab" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs">Collections</button>
+        <button id="runsTab" class="flex-1 py-2 text-center bg-gray-600 text-gray-300 hover:bg-gray-700 text-xs">History</button>
     </div>
     <div id="requestsList" class="flex-1 overflow-y-auto p-2 space-y-1">
         <div class="text-center text-gray-500 mt-10">Loading...</div>
@@ -45,6 +76,9 @@
     <div id="collectionsList" class="flex-1 overflow-y-auto p-2 space-y-1 hidden">
         <div class="text-center text-gray-500 mt-10">Loading...</div>
         <button id="newCollectionBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded mt-4">+ New Collection</button>
+    </div>
+    <div id="runsList" class="flex-1 overflow-y-auto p-2 space-y-1 hidden">
+        <div class="text-center text-gray-500 mt-10">Loading...</div>
     </div>
 </div>
 
@@ -57,29 +91,49 @@
             <button id="exportBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm">Export Collection</button>
             <button id="environmentsBtn" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm">Environments</button>
         </div>
-        <div class="text-gray-400 text-sm">🚀 API Client</div>
+        <div class="text-gray-400 text-sm">🚀SpinneR🚀</div>
     </div>
 
-    <div class="p-4 bg-gray-800 border-b border-gray-700 flex items-center space-x-2">
-        <span id="methodBadge" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm">METHOD</span>
-        <input type="text" id="urlInput" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500" readonly placeholder="Select a request...">
-        <select id="environmentSelect" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500">
-            <option value="">No Environment</option>
-        </select>
-        <button id="editBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold hidden">Edit</button>
-        <button id="saveBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold hidden">Save</button>
-        <button id="discardBtn" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold hidden">Discard</button>
-        <button id="runBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            ▶ Run
-        </button>
+    <div class="p-4 bg-gray-800 border-b border-gray-700">
+        <div class="flex items-center space-x-2 mb-2">
+            <span id="methodBadge" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm">METHOD</span>
+            <input type="text" id="urlInput" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500" readonly placeholder="Select a request...">
+            <select id="environmentSelect" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500">
+                <option value="">No Environment</option>
+            </select>
+            <button id="editBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold hidden">Edit</button>
+            <button id="saveBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold hidden">Save</button>
+            <button id="discardBtn" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold hidden">Discard</button>
+            <button id="runBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                ▶ Run
+            </button>
+        </div>
+        <div class="text-xs text-gray-500">
+            💡 Use <code class="bg-gray-900 px-1 rounded text-purple-400">{{ VARIABLE_NAME }}</code> to insert environment variables in URL, headers, query params, or body
+        </div>
     </div>
 
     <div class="flex-1 flex overflow-hidden">
 
         <div class="w-1/2 p-4 border-r border-gray-700 overflow-y-auto">
-            <h3 class="text-gray-400 text-xs font-bold uppercase mb-2">Request Body (JSON)</h3>
+            <h3 class="text-gray-400 text-xs font-bold uppercase mb-2">Query Params (JSON)</h3>
+            <pre id="requestQueryParamsDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-blue-400"></pre>
+            <textarea id="requestQueryParamsEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-blue-400 w-full hidden" placeholder="Enter JSON query params..."></textarea>
+
+            <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Request Body</h3>
+            <div id="bodyTypeDisplay" class="text-xs text-gray-500 mb-2">Type: <span id="bodyTypeValue">JSON</span></div>
             <pre id="requestBodyDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px]"></pre>
-            <textarea id="requestBodyEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px] w-full hidden" placeholder="Enter JSON body..."></textarea>
+            <div id="requestBodyEditContainer" class="hidden">
+                <select id="requestBodyTypeEdit" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 mb-2 text-sm">
+                    <option value="json">JSON</option>
+                    <option value="form-data">Form-Data</option>
+                </select>
+                <textarea id="requestBodyEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px] w-full" placeholder="Enter JSON body..."></textarea>
+                <div id="requestFormDataEdit" class="hidden space-y-2">
+                    <div id="requestFormDataFields" class="space-y-2 mb-2"></div>
+                    <button type="button" id="addRequestFormDataField" class="text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">+ Add Field</button>
+                </div>
+            </div>
 
             <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Headers</h3>
             <pre id="requestHeadersDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400"></pre>
@@ -102,7 +156,7 @@
 
 <!-- Modal for creating new request -->
 <div id="createRequestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
         <h2 class="text-xl font-bold mb-4">Create New Request</h2>
         <form id="createRequestForm">
             <div class="mb-4">
@@ -121,15 +175,33 @@
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">URL</label>
-                <input type="text" id="newRequestUrl" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" placeholder="https://api.example.com" required>
+                <input type="text" id="newRequestUrl" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" placeholder="{{ BASE_URL }}/users" required>
             </div>
             <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Query Params (JSON)</label>
+                <textarea id="newRequestQueryParams" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="1" placeholder='{"page": "1", "limit": "10"}'></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Body Type</label>
+                <select id="newRequestBodyType" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+                    <option value="json">JSON</option>
+                    <option value="form-data">Form-Data</option>
+                </select>
+            </div>
+            <div class="mb-4" id="jsonBodyContainer">
                 <label class="block text-sm font-medium mb-1">Body (JSON)</label>
-                <textarea id="newRequestBody" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="3" placeholder='{"key": "value"}'></textarea>
+                <textarea id="newRequestBody" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="5" placeholder='{"key": "value"}'></textarea>
+            </div>
+            <div class="mb-4 hidden" id="formDataContainer">
+                <label class="block text-sm font-medium mb-1">Form-Data</label>
+                <div id="formDataFields" class="space-y-2 mb-2">
+                    <!-- Form-data fields will be added here -->
+                </div>
+                <button type="button" id="addFormDataField" class="text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">+ Add Field</button>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Headers (JSON)</label>
-                <textarea id="newRequestHeaders" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="2" placeholder='{"Authorization": "Bearer token"}'></textarea>
+                <textarea id="newRequestHeaders" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="1" placeholder='{"Authorization": "Bearer {{ API_TOKEN }}"}'></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Collection</label>
@@ -185,6 +257,98 @@
     </div>
 </div>
 
+<!-- Modal for viewing collection details -->
+<div id="viewCollectionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-[600px] max-w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">Collection: <span id="viewCollectionName" class="text-blue-400"></span></h2>
+        <div class="mb-4">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-400">Requests (<span id="viewCollectionCount">0</span>)</span>
+                <button id="closeViewCollection" class="text-gray-400 hover:text-gray-300">✕</button>
+            </div>
+            <div id="viewCollectionRequests" class="space-y-2 max-h-96 overflow-y-auto">
+                <!-- Requests will be displayed here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for viewing run details -->
+<div id="viewRunModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-[700px] max-w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Run Details</h2>
+            <button id="closeViewRun" class="text-gray-400 hover:text-gray-300 text-xl">✕</button>
+        </div>
+
+        <!-- Run Info -->
+        <div class="mb-4 p-3 bg-gray-900 rounded border border-gray-700">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-lg font-medium text-gray-300" id="runDetailName">Request Name</span>
+                <span id="runDetailStatus" class="text-xs px-2 py-1 rounded">STATUS</span>
+            </div>
+            <div class="flex gap-4 text-xs text-gray-400">
+                <span id="runDetailTime">Time ago</span>
+                <span id="runDetailDuration">Duration</span>
+            </div>
+        </div>
+
+        <!-- Request Details -->
+        <div class="mb-4">
+            <h3 class="text-sm font-bold text-gray-400 uppercase mb-2">Request</h3>
+            <div class="p-3 bg-gray-900 rounded border border-gray-700">
+                <div class="flex items-center gap-2 mb-2">
+                    <span id="runDetailMethod" class="px-2 py-1 rounded text-xs font-bold">METHOD</span>
+                    <span id="runDetailUrl" class="text-sm text-gray-300 break-all">URL</span>
+                </div>
+                <div id="runDetailQueryParams" class="mt-2 hidden">
+                    <div class="text-xs text-blue-400 font-medium mb-1">Query Params:</div>
+                    <pre class="text-xs text-gray-300 bg-gray-800 p-2 rounded overflow-x-auto" id="runDetailQueryParamsContent"></pre>
+                </div>
+                <div id="runDetailBody" class="mt-2 hidden">
+                    <div class="text-xs text-green-400 font-medium mb-1">Body:</div>
+                    <pre class="text-xs text-gray-300 bg-gray-800 p-2 rounded overflow-x-auto" id="runDetailBodyContent"></pre>
+                </div>
+                <div id="runDetailHeaders" class="mt-2 hidden">
+                    <div class="text-xs text-yellow-400 font-medium mb-1">Headers:</div>
+                    <pre class="text-xs text-gray-300 bg-gray-800 p-2 rounded overflow-x-auto" id="runDetailHeadersContent"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Details -->
+        <div class="mb-4" id="runDetailResponseSection">
+            <h3 class="text-sm font-bold text-gray-400 uppercase mb-2">Response</h3>
+            <div class="p-3 bg-gray-900 rounded border border-gray-700">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs text-gray-400">Status:</span>
+                    <span id="runDetailResponseStatus" class="text-sm font-medium">-</span>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 font-medium mb-1">Body:</div>
+                    <pre class="text-xs text-gray-300 bg-gray-800 p-2 rounded overflow-x-auto max-h-64" id="runDetailResponseBody"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Details -->
+        <div class="mb-4 hidden" id="runDetailErrorSection">
+            <h3 class="text-sm font-bold text-red-400 uppercase mb-2">Error</h3>
+            <div class="p-3 bg-red-900 bg-opacity-20 rounded border border-red-700">
+                <pre class="text-sm text-red-300 whitespace-pre-wrap" id="runDetailError"></pre>
+            </div>
+        </div>
+
+        <!-- Environment Info -->
+        <div id="runDetailEnvironment" class="hidden">
+            <h3 class="text-sm font-bold text-gray-400 uppercase mb-2">Environment</h3>
+            <div class="p-3 bg-gray-900 rounded border border-gray-700">
+                <span class="text-sm text-purple-400" id="runDetailEnvironmentName">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal for managing environments -->
 <div id="manageEnvironmentsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
@@ -201,16 +365,29 @@
 
 <!-- Modal for creating/editing environment -->
 <div id="createEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
         <h2 id="environmentModalTitle" class="text-xl font-bold mb-4">Create Environment</h2>
+
+        <!-- Info block -->
+        <div class="mb-4 p-3 bg-blue-900 bg-opacity-20 border border-blue-700 rounded">
+            <div class="text-xs text-blue-300 mb-1">💡 How to use variables:</div>
+            <div class="text-xs text-gray-300 font-mono">
+                URL: <span class="text-purple-400">{{ BASE_URL }}</span>/users<br>
+                Header: "Bearer <span class="text-purple-400">{{ API_TOKEN }}</span>"
+            </div>
+        </div>
+
         <form id="createEnvironmentForm">
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Name</label>
                 <input type="text" id="environmentName" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" required>
             </div>
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-1">Variables (JSON)</label>
-                <textarea id="environmentVariables" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="5" placeholder='{"BASE_URL": "https://api.example.com", "API_KEY": "your-key"}'></textarea>
+                <label class="block text-sm font-medium mb-1">Variables</label>
+                <div id="environmentVariablesFields" class="space-y-2 mb-2">
+                    <!-- Environment variable fields will be added here -->
+                </div>
+                <button type="button" id="addEnvironmentVariable" class="text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">+ Add Variable</button>
             </div>
             <div class="flex justify-end space-x-2">
                 <button type="button" id="cancelCreateEnvironment" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
@@ -222,15 +399,17 @@
 
 <!-- Modal for viewing environment -->
 <div id="viewEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
         <h2 class="text-xl font-bold mb-4">View Environment</h2>
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Name</label>
             <input type="text" id="viewEnvironmentName" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" readonly>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Variables (JSON)</label>
-            <pre id="viewEnvironmentVariables" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 min-h-[100px] whitespace-pre-wrap"></pre>
+            <label class="block text-sm font-medium mb-1">Variables</label>
+            <div id="viewEnvironmentVariables" class="space-y-2 max-h-64 overflow-y-auto">
+                <!-- Variables will be displayed here -->
+            </div>
         </div>
         <div class="flex justify-end">
             <button id="closeViewEnvironment" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
@@ -238,6 +417,35 @@
     </div>
 </div>
 
+<!-- Modal for managing environment variables -->
+<div id="manageVariablesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">Manage Variables: <span id="manageVarEnvName" class="text-purple-400"></span></h2>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Variables</label>
+            <div id="manageVariablesList" class="space-y-2 mb-3 max-h-64 overflow-y-auto">
+                <!-- Variables will be displayed here -->
+            </div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Add New Variable</label>
+            <div class="flex gap-2">
+                <input type="text" id="newVarKey" placeholder="Key" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 text-sm">
+                <input type="text" id="newVarValue" placeholder="Value" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 text-sm">
+                <button id="addNewVariable" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm">Add</button>
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button id="closeManageVariables" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsonlint/1.6.0/jsonlint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/json-lint.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
