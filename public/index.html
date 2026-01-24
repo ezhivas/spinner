@@ -227,6 +227,24 @@
     </div>
 </div>
 
+<!-- Modal for viewing environment -->
+<div id="viewEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">View Environment</h2>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Name</label>
+            <input type="text" id="viewEnvironmentName" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" readonly>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Variables (JSON)</label>
+            <pre id="viewEnvironmentVariables" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 min-h-[100px] whitespace-pre-wrap"></pre>
+        </div>
+        <div class="flex justify-end">
+            <button onclick="hideViewEnvironmentModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const API_URL = 'http://localhost:3000';
     let currentRequestId = null;
@@ -531,6 +549,7 @@
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-gray-300">${env.name}</span>
                         <div class="space-x-2">
+                            <button onclick="viewEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
                             <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
                             <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
                         </div>
@@ -900,6 +919,7 @@
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-gray-300">${env.name}</span>
                         <div class="space-x-2">
+                            <button onclick="viewEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
                             <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
                             <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
                         </div>
@@ -910,6 +930,17 @@
         } catch (err) {
             list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
         }
+    }
+
+    function viewEnvironment(id, name, variablesStr) {
+        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        document.getElementById('viewEnvironmentName').value = name;
+        document.getElementById('viewEnvironmentVariables').textContent = JSON.stringify(variables, null, 2);
+        document.getElementById('viewEnvironmentModal').classList.remove('hidden');
+    }
+
+    function hideViewEnvironmentModal() {
+        document.getElementById('viewEnvironmentModal').classList.add('hidden');
     }
 
     function showManageEnvironmentsModal() {
@@ -1047,48 +1078,22 @@
     loadRequests();
     loadEnvironmentsForSelect();
 
-    // Create Request Modal
-    const createRequestModal = document.getElementById('createRequestModal');
-    const createRequestForm = document.getElementById('createRequestForm');
+    function toggleEditMode() {
+        // Hide display elements, show edit elements
+        document.getElementById('requestBodyDisplay').classList.add('hidden');
+        document.getElementById('requestBodyEdit').classList.remove('hidden');
+        document.getElementById('requestHeadersDisplay').classList.add('hidden');
+        document.getElementById('requestHeadersEdit').classList.remove('hidden');
 
-    function showCreateRequestModal() {
-        createRequestModal.classList.remove('hidden');
-        loadCollectionsForModal();
+        // Hide edit button, show save and discard
+        document.getElementById('editBtn').classList.add('hidden');
+        document.getElementById('saveBtn').classList.remove('hidden');
+        document.getElementById('discardBtn').classList.remove('hidden');
     }
 
-    function hideCreateRequestModal() {
-        createRequestModal.classList.add('hidden');
-        createRequestForm.reset();
-    }
-
-    async function loadCollectionsForModal() {
-        const select = document.getElementById('newRequestCollection');
-        select.innerHTML = '<option value="">No Collection</option>';
-
-        try {
-            const res = await fetch(`${API_URL}/collections`);
-            const collections = await res.json();
-
-            collections.forEach(col => {
-                const option = document.createElement('option');
-                option.value = col.id;
-                option.textContent = col.name;
-                select.appendChild(option);
-            });
-        } catch (err) {
-            console.error('Error loading collections:', err);
-        }
-    }
-
-    createRequestForm.onsubmit = async (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('newRequestName').value;
-        const method = document.getElementById('newRequestMethod').value;
-        const url = document.getElementById('newRequestUrl').value;
-        const bodyText = document.getElementById('newRequestBody').value.trim();
-        const headersText = document.getElementById('newRequestHeaders').value.trim();
-        const collectionId = document.getElementById('newRequestCollection').value;
+    function saveChanges() {
+        const bodyText = document.getElementById('requestBodyEdit').value.trim();
+        const headersText = document.getElementById('requestHeadersEdit').value.trim();
 
         let body = null;
         let headers = null;
@@ -1101,320 +1106,36 @@
             return;
         }
 
-        try {
-            const res = await fetch(`${API_URL}/requests`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, method, url, body, headers, collectionId })
-            });
+        // Update the request via API
+        fetch(`${API_URL}/requests/${currentRequestId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ body, headers })
+        }).then(res => {
             if (res.ok) {
-                const newRequest = await res.json();
-                loadRequests();
-                hideCreateRequestModal();
-                selectRequest(newRequest);
+                // Update display
+                document.getElementById('requestBodyDisplay').textContent = body ? JSON.stringify(body, null, 2) : '// No Body';
+                document.getElementById('requestHeadersDisplay').textContent = headers ? JSON.stringify(headers, null, 2) : '// No Headers';
+                // Switch back to display mode
+                discardChanges();
             } else {
-                alert('Error creating request');
+                alert('Error saving changes');
             }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
+        }).catch(err => alert('Error: ' + err.message));
     }
 
-    // Import/Export Modals
-    const importCollectionModal = document.getElementById('importCollectionModal');
-    const exportCollectionModal = document.getElementById('exportCollectionModal');
+    function discardChanges() {
+        // Show display, hide edit
+        document.getElementById('requestBodyDisplay').classList.remove('hidden');
+        document.getElementById('requestBodyEdit').classList.add('hidden');
+        document.getElementById('requestHeadersDisplay').classList.remove('hidden');
+        document.getElementById('requestHeadersEdit').classList.add('hidden');
 
-    function showImportCollectionModal() {
-        importCollectionModal.classList.remove('hidden');
+        // Show edit button, hide save and discard
+        document.getElementById('editBtn').classList.remove('hidden');
+        document.getElementById('saveBtn').classList.add('hidden');
+        document.getElementById('discardBtn').classList.add('hidden');
     }
-
-    function hideImportCollectionModal() {
-        importCollectionModal.classList.add('hidden');
-    }
-
-    function showExportCollectionModal() {
-        loadCollectionsForExport();
-        exportCollectionModal.classList.remove('hidden');
-    }
-
-    function hideExportCollectionModal() {
-        exportCollectionModal.classList.add('hidden');
-    }
-
-    async function loadCollectionsForExport() {
-        const select = document.getElementById('exportCollectionSelect');
-        select.innerHTML = '<option value="">Select a collection...</option>';
-
-        try {
-            const res = await fetch(`${API_URL}/collections`);
-            const collections = await res.json();
-
-            collections.forEach(col => {
-                const option = document.createElement('option');
-                option.value = col.id;
-                option.textContent = col.name;
-                select.appendChild(option);
-            });
-        } catch (err) {
-            console.error('Error loading collections for export:', err);
-        }
-    }
-
-    // Handle Import Collection
-    document.getElementById('importCollectionForm').onsubmit = async (e) => {
-        e.preventDefault();
-
-        const fileInput = document.getElementById('importFile');
-        const jsonInput = document.getElementById('importJson');
-
-        let jsonData = null;
-
-        // Если загружен файл, читаем его
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-
-            reader.onload = async (e) => {
-                const content = e.target.result;
-                try {
-                    jsonData = JSON.parse(content);
-                    await importCollectionData(jsonData);
-                    hideImportCollectionModal();
-                } catch (err) {
-                    alert('Error parsing JSON file: ' + err.message);
-                }
-            };
-
-            reader.readAsText(file);
-        } else if (jsonInput.value.trim() !== '') {
-            // Или, если есть текст в поле, парсим его
-            try {
-                jsonData = JSON.parse(jsonInput.value);
-                await importCollectionData(jsonData);
-                hideImportCollectionModal();
-            } catch (err) {
-                alert('Error parsing JSON: ' + err.message);
-            }
-        } else {
-            alert('Please upload a file or enter JSON data.');
-        }
-    };
-
-    async function importCollectionData(data) {
-        try {
-            const res = await fetch(`${API_URL}/collections/import`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (res.ok) {
-                const result = await res.json();
-                alert('Collection imported successfully!');
-                loadCollections();
-            } else {
-                alert('Error importing collection');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    }
-
-    // Handle Export Collection
-    document.getElementById('exportCollectionForm').onsubmit = async (e) => {
-        e.preventDefault();
-
-        const select = document.getElementById('exportCollectionSelect');
-        const collectionId = select.value;
-
-        if (!collectionId) {
-            alert('Please select a collection to export.');
-            return;
-        }
-
-        try {
-            const res = await fetch(`${API_URL}/collections/${collectionId}/export`);
-            if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'collection.json';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                alert('Collection exported successfully!');
-            } else {
-                alert('Error exporting collection');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    }
-
-    // Manage Environments
-    async function loadEnvironments() {
-        const list = document.getElementById('environmentsList');
-        list.innerHTML = '<div class="text-center text-gray-500 mt-4">Loading...</div>';
-
-        try {
-            const res = await fetch(`${API_URL}/environments`);
-            const environments = await res.json();
-
-            list.innerHTML = '';
-            environments.forEach(env => {
-                const el = document.createElement('div');
-                el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
-                el.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-gray-300">${env.name}</span>
-                        <div class="space-x-2">
-                            <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
-                            <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(el);
-            });
-        } catch (err) {
-            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
-        }
-    }
-
-    function showManageEnvironmentsModal() {
-        document.getElementById('manageEnvironmentsModal').classList.remove('hidden');
-        loadEnvironments();
-    }
-
-    function hideManageEnvironmentsModal() {
-        document.getElementById('manageEnvironmentsModal').classList.add('hidden');
-    }
-
-    function showCreateEnvironmentModal() {
-        document.getElementById('createEnvironmentModal').classList.remove('hidden');
-        document.getElementById('environmentModalTitle').textContent = 'Create Environment';
-        document.getElementById('createEnvironmentForm').reset();
-        document.getElementById('createEnvironmentForm').onsubmit = createEnvironment;
-    }
-
-    function hideCreateEnvironmentModal() {
-        document.getElementById('createEnvironmentModal').classList.add('hidden');
-    }
-
-    function editEnvironment(id, name, variablesStr) {
-        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
-        document.getElementById('environmentName').value = name;
-        document.getElementById('environmentVariables').value = JSON.stringify(variables, null, 2);
-        document.getElementById('environmentModalTitle').textContent = 'Edit Environment';
-        document.getElementById('createEnvironmentForm').onsubmit = (e) => {
-            e.preventDefault();
-            updateEnvironment(id);
-        };
-        showCreateEnvironmentModal();
-    }
-
-    async function updateEnvironment(id) {
-        const name = document.getElementById('environmentName').value;
-        const variablesText = document.getElementById('environmentVariables').value.trim();
-
-        let variables = {};
-
-        try {
-            if (variablesText) variables = JSON.parse(variablesText);
-        } catch (e) {
-            alert('Invalid JSON in variables');
-            return;
-        }
-
-        try {
-            const res = await fetch(`${API_URL}/environments/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, variables })
-            });
-            if (res.ok) {
-                loadEnvironments();
-                hideCreateEnvironmentModal();
-                // Reload the select
-                loadEnvironmentsForSelect();
-            } else {
-                alert('Error updating environment');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    }
-
-    function deleteEnvironment(id) {
-        if (confirm('Are you sure you want to delete this environment?')) {
-            fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
-                .then(res => {
-                    if (res.ok) {
-                        loadEnvironments();
-                        loadEnvironmentsForSelect();
-                    } else {
-                        alert('Error deleting environment');
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-        }
-    }
-
-    async function createEnvironment(e) {
-        e.preventDefault();
-
-        const name = document.getElementById('environmentName').value;
-        const variablesText = document.getElementById('environmentVariables').value.trim();
-
-        let variables = {};
-
-        try {
-            if (variablesText) variables = JSON.parse(variablesText);
-        } catch (e) {
-            alert('Invalid JSON in variables');
-            return;
-        }
-
-        try {
-            const res = await fetch(`${API_URL}/environments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, variables })
-            });
-            if (res.ok) {
-                loadEnvironments();
-                hideCreateEnvironmentModal();
-                loadEnvironmentsForSelect();
-            } else {
-                alert('Error creating environment');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-    }
-
-    // Update the loadEnvironments function to also update the select
-    async function loadEnvironmentsForSelect() {
-        try {
-            const res = await fetch(`${API_URL}/environments`);
-            const environments = await res.json();
-
-            const select = document.getElementById('environmentSelect');
-            select.innerHTML = '<option value="">No Environment</option>';
-            environments.forEach(env => {
-                const option = document.createElement('option');
-                option.value = env.id;
-                option.textContent = env.name;
-                select.appendChild(option);
-            });
-        } catch (err) {
-            console.error('Error loading environments for select:', err);
-        }
-    }
-
-    // Инит
-    loadRequests();
-    loadEnvironmentsForSelect();
 </script>
 </body>
 </html>
