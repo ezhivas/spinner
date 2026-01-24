@@ -14,7 +14,7 @@ export class EnvironmentEntity {
   name: string;
 
   /**
-   * Пример:
+   * Example:
    * {
    *   "BASE_URL": "https://api.example.com",
    *   "TOKEN": "abc123"

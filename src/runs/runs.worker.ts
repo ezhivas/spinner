@@ -63,13 +63,13 @@ export function startRunsWorker(
         await queryRunner.rollbackTransaction();
         logger.error(`Job ${job.id} failed: ${e.message}`);
 
-        // Пытаемся спасти ситуацию: обновляем статус на ERROR вне транзакции
+        // Trying to salvage the situation: update status to ERROR outside the transaction
         try {
-          const runRepo = dataSource.getRepository(RequestRunEntity); // Берем репозиторий напрямую
+          const runRepo = dataSource.getRepository(RequestRunEntity); // Taking the repository directly
           await runRepo.update(job.data.runId, {
             status: 'ERROR',
-            error: e.message, // Сохраняем текст ошибки, чтобы видеть в UI
-            durationMs: 0,    // Или посчитать время до падения
+            error: e.message, // Saving the error text to see in the UI
+            durationMs: 0,    // Or calculate the time until failure
           });
         } catch (dbError) {
           logger.error('Failed to update run status to ERROR', dbError);
