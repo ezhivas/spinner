@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 interface ExecutionResult {
@@ -12,8 +13,15 @@ interface ExecutionResult {
 
 @Injectable()
 export class HttpExecutorService {
+  constructor(private readonly configService: ConfigService) {}
+
   async execute(config: AxiosRequestConfig): Promise<ExecutionResult> {
     const start = Date.now();
+
+    // Set default timeout if not provided
+    if (!config.timeout) {
+      config.timeout = this.configService.get<number>('REQUEST_TIMEOUT') || 60000;
+    }
 
     try {
       const response: AxiosResponse = await axios(config);
