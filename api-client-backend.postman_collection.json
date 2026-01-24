@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "API Client Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Hello",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "Create Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sample Request\",\n  \"method\": \"GET\",\n  \"url\": \"https://api.example.com/data\",\n  \"headers\": {\n    \"Authorization\": \"Bearer token\"\n  },\n  \"queryParams\": {\n    \"limit\": \"10\"\n  },\n  \"body\": null,\n  \"collectionId\": {{collectionId}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["requests"]
+        }
+      }
+    },
+    {
+      "name": "Get All Requests",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["requests"]
+        }
+      }
+    },
+    {
+      "name": "Get Request by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requests/{{requestId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["requests", "{{requestId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Request",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Request\",\n  \"url\": \"https://api.example.com/updated\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/requests/{{requestId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["requests", "{{requestId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Request",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requests/{{requestId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["requests", "{{requestId}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Environment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Development\",\n  \"variables\": {\n    \"BASE_URL\": \"https://api.dev.example.com\",\n    \"TOKEN\": \"dev-token\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/environments",
+          "host": ["{{baseUrl}}"],
+          "path": ["environments"]
+        }
+      }
+    },
+    {
+      "name": "Get All Environments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/environments",
+          "host": ["{{baseUrl}}"],
+          "path": ["environments"]
+        }
+      }
+    },
+    {
+      "name": "Get Environment by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/environments/{{environmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["environments", "{{environmentId}}"]
+        }
+      }
+    },
+    {
+      "name": "Run Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs/requests/{{requestId}}/run?environmentId={{environmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["runs", "requests", "{{requestId}}", "run"],
+          "query": [
+            {
+              "key": "environmentId",
+              "value": "{{environmentId}}",
+              "description": "Optional environment ID"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Runs History",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs",
+          "host": ["{{baseUrl}}"],
+          "path": ["runs"]
+        }
+      }
+    },
+    {
+      "name": "Create Collection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My API Collection\",\n  \"description\": \"A collection of API requests\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/collections",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections"]
+        }
+      }
+    },
+    {
+      "name": "Get All Collections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/collections",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections"]
+        }
+      }
+    },
+    {
+      "name": "Get Collection by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/collections/{{collectionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections", "{{collectionId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Collection",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Collection\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/collections/{{collectionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections", "{{collectionId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Collection",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/collections/{{collectionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["collections", "{{collectionId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "environmentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "collectionId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}

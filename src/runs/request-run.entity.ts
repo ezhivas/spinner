@@ -23,7 +23,7 @@ export class RequestRunEntity {
   environment?: EnvironmentEntity;
 
   @Column()
-  status: 'SUCCESS' | 'ERROR';
+  status: 'PENDING' | 'SUCCESS' | 'ERROR';
 
   @Column({ nullable: true })
   responseStatus?: number;

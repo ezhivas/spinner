@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RequestEntity } from './request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { CollectionEntity } from '../collections/collection.entity';
 
 @Injectable()
 export class RequestsService {
@@ -12,8 +13,15 @@ export class RequestsService {
     private readonly repo: Repository<RequestEntity>,
   ) {}
 
-  create(dto: CreateRequestDto) {
-    const request = this.repo.create(dto);
+  async create(dto: CreateRequestDto) {
+    const { collectionId, ...data } = dto;
+    const request = this.repo.create(data);
+    if (collectionId) {
+      const collection = await this.repo.manager.findOne(CollectionEntity, { where: { id: collectionId } });
+      if (collection) {
+        request.collection = collection;
+      }
+    }
     return this.repo.save(request);
   }
 

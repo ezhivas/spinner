@@ -1,75 +1,54 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { RequestRunEntity } from './request-run.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
-import { HttpExecutorService } from '../http-executor/http-executor.service';
-import { VariableResolverService } from '../environments/variable-resolver.service';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class RunsService {
   constructor(
     @InjectRepository(RequestRunEntity)
-    private readonly runsRepo: Repository<RequestRunEntity>,
+    private readonly runRepo: Repository<RequestRunEntity>,
 
     @InjectRepository(RequestEntity)
-    private readonly requestsRepo: Repository<RequestEntity>,
+    private readonly requestRepo: Repository<RequestEntity>,
 
     @InjectRepository(EnvironmentEntity)
     private readonly envRepo: Repository<EnvironmentEntity>,
 
-    private readonly executor: HttpExecutorService,
-    private readonly resolver: VariableResolverService,
+    @Inject('RUNS_QUEUE')
+    private readonly queue: Queue,
   ) {}
 
   async runRequest(requestId: number, environmentId?: number) {
-    const request = await this.requestsRepo.findOneBy({ id: requestId });
+    const request = await this.requestRepo.findOneBy({ id: requestId });
     if (!request) {
-      throw new NotFoundException('Request not found');
+      throw new Error('Request not found');
     }
 
-    let env: EnvironmentEntity | undefined;
-    let variables = {};
+    let env: EnvironmentEntity | null = null;
 
     if (environmentId) {
       env = await this.envRepo.findOneBy({ id: environmentId });
-      if (!env) {
-        throw new NotFoundException('Environment not found');
-      }
-      variables = env.variables;
     }
 
-    const url = this.resolver.resolve(request.url, variables);
-    const headers = this.resolver.resolveObject(request.headers, variables);
-    const queryParams = this.resolver.resolveObject(
-      request.queryParams,
-      variables,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const body = this.resolver.resolveObject(request.body, variables);
-
-    const result = await this.executor.execute({
-      method: request.method,
-      url,
-      headers,
-      params: queryParams,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      data: body,
-    });
-
-    const run = this.runsRepo.create({
+    const run = await this.runRepo.save({
       request,
-      environment: env,
-      ...result,
+      environment: env ?? undefined,
+      status: 'PENDING',
     });
 
-    return this.runsRepo.save(run);
+    await this.queue.add('execute', {
+      runId: run.id,
+      environmentId,
+    });
+
+    return run;
   }
 
-  findAll() {
-    return this.runsRepo.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll() {
+    return this.runRepo.find();
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsNotEmpty, IsString, IsNumber } from 'class-validator';
 import { HttpMethod } from '../request.entity';
 
 export class CreateRequestDto {
@@ -27,4 +27,9 @@ export class CreateRequestDto {
   @ApiProperty({ required: false })
   @IsOptional()
   body?: any;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  collectionId?: number;
 }

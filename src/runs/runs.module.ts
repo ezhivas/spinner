@@ -7,6 +7,7 @@ import { RequestEntity } from '../requests/request.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
 import { EnvironmentsModule } from '../environments/environments.module';
 import { HttpExecutorModule } from '../http-executor/http-executor.module';
+import { BullmqModule } from '../queue/bullmq.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { HttpExecutorModule } from '../http-executor/http-executor.module';
     ]),
     EnvironmentsModule,
     HttpExecutorModule,
+    BullmqModule,
   ],
   providers: [RunsService],
   controllers: [RunsController],

@@ -3,7 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
 } from 'typeorm';
+import { CollectionEntity } from '../collections/collection.entity';
 
 export enum HttpMethod {
   GET = 'GET',
@@ -38,6 +40,12 @@ export class RequestEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   body: any;
+
+  @ManyToOne(() => CollectionEntity, (collection) => collection.requests, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  collection?: CollectionEntity;
 
   @CreateDateColumn()
   createdAt: Date;
