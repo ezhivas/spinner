@@ -6,6 +6,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { CollectionEntity } from '../collections/collection.entity';
+import { JsonColumn } from '../common/decorators/json-column.decorator';
 
 export enum HttpMethod {
   GET = 'GET',
@@ -32,13 +33,13 @@ export class RequestEntity {
   @Column()
   url: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   headers: Record<string, string>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   queryParams: Record<string, string>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   body: any;
 
   @Column({ nullable: true })

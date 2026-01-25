@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
+import { JsonColumn } from '../common/decorators/json-column.decorator';
 
 @Entity('environments')
 export class EnvironmentEntity {
@@ -20,7 +21,7 @@ export class EnvironmentEntity {
    *   "TOKEN": "abc123"
    * }
    */
-  @Column({ type: 'jsonb' })
+  @JsonColumn()
   variables: Record<string, string>;
 
   @CreateDateColumn()
