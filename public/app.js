@@ -1,8 +1,6 @@
     // Detect Electron mode and set API URL
     const IS_ELECTRON = !!(window.electron && window.electron.isElectron);
-    const API_URL = IS_ELECTRON
-        ? `http://localhost:${window.electron?.getBackendPort?.() || 3000}`
-        : 'http://localhost:3000';
+    let API_URL = 'http://localhost:3000';
 
     let currentRequestId = null;
     let currentRequest = null; // Store full request data
@@ -316,6 +314,14 @@
             }
 
             const requests = await res.json();
+
+            // Validate that response is an array
+            if (!Array.isArray(requests)) {
+                console.error('Expected array of requests but got:', requests);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format from server</div>';
+                return;
+            }
+
             logSuccess('Requests loaded', { count: requests.length });
 
             list.innerHTML = '';
@@ -613,7 +619,20 @@
 
         try {
             const res = await fetch(`${API_URL}/collections`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load collections: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load collections</div>';
+                return;
+            }
+
             const collections = await res.json();
+
+            if (!Array.isArray(collections)) {
+                console.error('Expected array of collections but got:', collections);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             collections.forEach(col => {
@@ -828,7 +847,20 @@
 
         try {
             const res = await fetch(`${API_URL}/runs`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load runs: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load runs</div>';
+                return;
+            }
+
             const runs = await res.json();
+
+            if (!Array.isArray(runs)) {
+                console.error('Expected array of runs but got:', runs);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             if (runs.length === 0) {
@@ -1099,7 +1131,20 @@
 
         try {
             const res = await fetch(`${API_URL}/environments`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load environments: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load environments</div>';
+                return;
+            }
+
             const environments = await res.json();
+
+            if (!Array.isArray(environments)) {
+                console.error('Expected array of environments but got:', environments);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             environments.forEach(env => {
@@ -1417,7 +1462,24 @@
     async function loadEnvironmentsForSelect() {
         try {
             const res = await fetch(`${API_URL}/environments`);
+
+            // Check if response is OK
+            if (!res.ok) {
+                console.warn(`Failed to load environments: ${res.status} ${res.statusText}`);
+                const select = document.getElementById('environmentSelect');
+                select.innerHTML = '<option value="">No Environment (error loading)</option>';
+                return;
+            }
+
             const environments = await res.json();
+
+            // Validate that response is an array
+            if (!Array.isArray(environments)) {
+                console.error('Expected array of environments but got:', environments);
+                const select = document.getElementById('environmentSelect');
+                select.innerHTML = '<option value="">No Environment (invalid data)</option>';
+                return;
+            }
 
             const select = document.getElementById('environmentSelect');
             select.innerHTML = '<option value="">No Environment</option>';
@@ -1429,6 +1491,10 @@
             });
         } catch (err) {
             console.error('Error loading environments for select:', err);
+            const select = document.getElementById('environmentSelect');
+            if (select) {
+                select.innerHTML = '<option value="">No Environment (connection error)</option>';
+            }
         }
     }
 

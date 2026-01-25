@@ -1,7 +1,34 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const getPort = require('get-port');
+const fs = require('fs');
+
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+    // Ignore EPIPE errors (broken pipe when writing to stdout/stderr)
+    if (error.code === 'EPIPE') {
+        return;
+    }
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Ignore stdout/stderr errors
+if (process.stdout) {
+    process.stdout.on('error', (err) => {
+        if (err.code === 'EPIPE') return;
+    });
+}
+
+if (process.stderr) {
+    process.stderr.on('error', (err) => {
+        if (err.code === 'EPIPE') return;
+    });
+}
 
 let mainWindow;
 let nestBackend;
@@ -9,6 +36,53 @@ let backendPort;
 
 // Path to backend build
 const BACKEND_PATH = path.join(__dirname, '..', 'dist', 'main.js');
+
+/**
+ * Исправленная функция поиска Node.js
+ * Убрали process.execPath из списка, чтобы избежать рекурсии
+ */
+function findNodePath() {
+    // 1. Попытка найти через which (для Mac/Linux)
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+        try {
+            // Расширенный PATH для поиска
+            const extraPaths = [
+                '/opt/homebrew/bin',
+                '/usr/local/bin',
+                '/usr/bin',
+                '/bin',
+                process.env.PATH
+            ].join(':');
+
+            const result = execSync('which node', {
+                env: { ...process.env, PATH: extraPaths },
+                encoding: 'utf8'
+            }).trim();
+
+            if (result && fs.existsSync(result)) {
+                return result;
+            }
+        } catch (e) {
+            // Игнорируем ошибки which
+        }
+    }
+
+    // 2. Проверка стандартных путей
+    const possiblePaths = [
+        '/opt/homebrew/bin/node',     // Apple Silicon
+        '/usr/local/bin/node',        // Intel Mac
+        '/usr/bin/node',              // System
+        '/bin/node'
+    ];
+
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            return p;
+        }
+    }
+
+    return null; // Если не нашли системный node
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -47,66 +121,135 @@ function createWindow() {
 }
 
 async function startBackend() {
-    // Find available port (try 3000-3010)
-    try {
-        backendPort = await getPort({
-            port: getPort.makeRange(3000, 3010)
-        });
-    } catch (err) {
-        console.error('Failed to find available port:', err);
-        backendPort = 3000; // Fallback
+    const logPath = path.join(app.getPath('userData'), 'backend-startup.log');
+    const log = (msg) => {
+        const text = `${new Date().toISOString()} ${msg}\n`;
+        try {
+            fs.appendFileSync(logPath, text);
+        } catch (e) {
+            // Ignore file write errors
+        }
+        // Safely write to console (may fail with EPIPE if stdout is closed)
+        try {
+            console.log(msg);
+        } catch (e) {
+            // Ignore console errors (EPIPE, etc)
+        }
+    };
+
+    log('--- App Launching ---');
+
+    // 1. Определяем, какой Node.js использовать
+    let executable = findNodePath();
+    let useElectronAsNode = false;
+
+    if (!executable) {
+        log('⚠️ System Node.js not found. Falling back to Electron internal Node.');
+        // Используем сам Electron как Node.js рантайм
+        executable = process.execPath;
+        useElectronAsNode = true;
+    } else {
+        log(`✅ Found System Node.js at: ${executable}`);
     }
 
-    console.log(`🚀 Starting backend on port ${backendPort}...`);
+    // Поиск порта
+    try {
+        backendPort = await getPort({ port: getPort.makeRange(3000, 3010) });
+    } catch (err) {
+        log(`Port error: ${err.message}`);
+        backendPort = 3000;
+    }
+
+    // 2. Настройка переменных окружения
+    const env = {
+        ...process.env,
+        NODE_ENV: 'production',
+        DB_TYPE: 'sqlite',
+        DB_PATH: path.join(app.getPath('userData'), 'spinner.db'),
+        REDIS_ENABLED: 'false',
+        PORT: backendPort.toString(),
+    };
+
+    // ВАЖНО: Если используем Electron как Node, нужно установить этот флаг
+    if (useElectronAsNode) {
+        env.ELECTRON_RUN_AS_NODE = '1';
+    }
+
+    // Добавляем пути в PATH для ребенка (на всякий случай)
+    if (process.platform === 'darwin') {
+        env.PATH = `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH}`;
+    }
+
+    // Путь к main.js (dist)
+    const finalBackendPath = BACKEND_PATH;
+    log(`Backend Script: ${finalBackendPath}`);
+    log(`DB Path: ${env.DB_PATH}`);
+    log(`Port: ${backendPort}`);
+
+    // Проверка существования файла перед запуском
+    if (!fs.existsSync(finalBackendPath)) {
+        const err = `CRITICAL: Backend file not found at ${finalBackendPath}`;
+        log(err);
+        const { dialog } = require('electron');
+        dialog.showErrorBox('Startup Error', err);
+        throw new Error(err);
+    }
 
     return new Promise((resolve, reject) => {
-        // Start NestJS backend as separate process
-        nestBackend = spawn('node', [BACKEND_PATH], {
-            env: {
-                ...process.env,
-                NODE_ENV: 'production',
-                DB_TYPE: 'sqlite',
-                DB_PATH: path.join(app.getPath('userData'), 'spinner.db'),
-                REDIS_ENABLED: 'false',
-                PORT: backendPort.toString(),
-            },
-            stdio: ['pipe', 'pipe', 'pipe']
-        });
+        log('Spawning Node process...');
+        log(`Using executable: ${executable}`);
+        if (useElectronAsNode) {
+            log('Mode: ELECTRON_RUN_AS_NODE');
+        }
+
+        try {
+            nestBackend = spawn(executable, [finalBackendPath], {
+                env: env, // Используем подготовленный env
+                stdio: ['ignore', 'pipe', 'pipe'] // ignore для stdin, чтобы не висел
+            });
+        } catch (spawnError) {
+            log(`Spawn Error: ${spawnError.message}`);
+            reject(spawnError);
+            return;
+        }
 
         let startupTimeout;
 
+        nestBackend.on('error', (err) => {
+            log(`Failed to start subprocess: ${err.message}`);
+            const { dialog } = require('electron');
+            dialog.showErrorBox('Node.js Error',
+                `Could not start backend.\nError: ${err.message}\n\nMake sure Node.js is installed.`);
+            reject(err);
+        });
+
         nestBackend.stdout.on('data', (data) => {
             const output = data.toString();
-            console.log(`Backend: ${output}`);
+            log(`Backend: ${output.trim()}`);
 
-            // Wait for ready message
             if (output.includes('Nest application successfully started') ||
                 output.includes('successfully started')) {
                 clearTimeout(startupTimeout);
-                console.log(`✅ Backend ready on port ${backendPort}`);
+                log('✅ Backend started successfully!');
                 resolve();
             }
         });
 
         nestBackend.stderr.on('data', (data) => {
-            console.error(`Backend Error: ${data}`);
+            log(`Backend STDERR: ${data.toString()}`);
         });
 
         nestBackend.on('close', (code) => {
-            console.log(`Backend process exited with code ${code}`);
+            log(`Backend process exited with code ${code}`);
             if (code !== 0 && code !== null) {
-                reject(new Error(`Backend exited with code ${code}`));
+                // Не реджектим сразу, если окно уже открыто
+                log(`⚠️ Backend exited with non-zero code, but not rejecting if UI is already loaded`);
             }
-        });
-
-        nestBackend.on('error', (err) => {
-            console.error(`Failed to start backend:`, err);
-            reject(err);
         });
 
         // Timeout with fallback
         startupTimeout = setTimeout(() => {
-            console.warn('Backend startup timeout, attempting to load UI anyway...');
+            log('⚠️ Backend startup timeout, attempting to load UI anyway...');
             resolve();
         }, 10000); // 10 seconds
     });
