@@ -12,11 +12,28 @@
         const fieldDiv = document.createElement('div');
         fieldDiv.className = 'flex gap-2 items-center';
         fieldDiv.id = fieldId;
-        fieldDiv.innerHTML = `
-            <input type="text" placeholder="Key" value="${key}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-key">
-            <input type="text" placeholder="Value" value="${value}" class="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-value">
-            <button type="button" onclick="document.getElementById('${fieldId}').remove()" class="text-red-500 hover:text-red-400 text-sm px-2">✕</button>
-        `;
+
+        const keyInput = document.createElement('input');
+        keyInput.type = 'text';
+        keyInput.placeholder = 'Key';
+        keyInput.value = key;
+        keyInput.className = 'flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-key';
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.placeholder = 'Value';
+        valueInput.value = value;
+        valueInput.className = 'flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-gray-300 text-sm form-data-value';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'text-red-500 hover:text-red-400 text-sm px-2';
+        deleteBtn.textContent = '✕';
+        deleteBtn.onclick = () => document.getElementById(fieldId).remove();
+
+        fieldDiv.appendChild(keyInput);
+        fieldDiv.appendChild(valueInput);
+        fieldDiv.appendChild(deleteBtn);
         container.appendChild(fieldDiv);
     }
 
@@ -68,15 +85,44 @@
                 const el = document.createElement('div');
                 el.className = 'cursor-pointer p-3 rounded hover:bg-gray-700 transition-colors border border-transparent hover:border-gray-600 group';
                 el.onclick = () => selectRequest(req);
-                el.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-xs ${methodColor} w-12">${req.method}</span>
-                        <span class="text-sm font-medium truncate flex-1 ml-2 text-gray-300 group-hover:text-white">${req.name}</span>
-                        <button onclick="event.stopPropagation(); deleteRequest(${req.id});" class="text-red-500 hover:text-red-400 text-xs ml-2">🗑️</button>
-                    </div>
-                    <div class="text-xs text-gray-500 truncate mt-1 ml-14">${req.url}</div>
-                    <div class="text-xs text-gray-500 mt-1 ml-14">${req.collection ? `Collection: ${req.collection.name}` : 'No Collection'}</div>
-                `;
+
+                // Top row
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center justify-between';
+
+                const methodSpan = document.createElement('span');
+                methodSpan.className = `font-bold text-xs ${methodColor} w-12`;
+                methodSpan.textContent = req.method;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-sm font-medium truncate flex-1 ml-2 text-gray-300 group-hover:text-white';
+                nameSpan.textContent = req.name;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-400 text-xs ml-2';
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteRequest(req.id);
+                };
+
+                topRow.appendChild(methodSpan);
+                topRow.appendChild(nameSpan);
+                topRow.appendChild(deleteBtn);
+
+                // URL row
+                const urlDiv = document.createElement('div');
+                urlDiv.className = 'text-xs text-gray-500 truncate mt-1 ml-14';
+                urlDiv.textContent = req.url;
+
+                // Collection row
+                const collectionDiv = document.createElement('div');
+                collectionDiv.className = 'text-xs text-gray-500 mt-1 ml-14';
+                collectionDiv.textContent = req.collection ? `Collection: ${req.collection.name}` : 'No Collection';
+
+                el.appendChild(topRow);
+                el.appendChild(urlDiv);
+                el.appendChild(collectionDiv);
                 list.appendChild(el);
             });
         } catch (err) {
@@ -88,38 +134,42 @@
     function selectRequest(req) {
         currentRequestId = req.id;
         currentRequest = req; // Store full request data
-        document.getElementById('urlInput').value = req.url;
 
-        const badge = document.getElementById('methodBadge');
-        badge.textContent = req.method;
-        badge.className = `px-3 py-1 rounded font-mono font-bold text-sm text-gray-900 ${getMethodColorBg(req.method)}`;
+        // Set method and URL
+        document.getElementById('methodSelect').value = req.method;
+        document.getElementById('urlInput').value = req.url;
 
         // Detect body type
         const bodyType = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? 'form-data' : 'json';
-        document.getElementById('bodyTypeValue').textContent = bodyType === 'form-data' ? 'Form-Data' : 'JSON';
+        document.getElementById('requestBodyTypeEdit').value = bodyType;
 
-        // Display mode
-        document.getElementById('requestQueryParamsDisplay').textContent = req.queryParams ? JSON.stringify(req.queryParams, null, 2) : '// No Query Params';
-
-        if (bodyType === 'form-data') {
-            document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
-        } else {
-            document.getElementById('requestBodyDisplay').textContent = req.body ? JSON.stringify(req.body, null, 2) : '// No Body';
-        }
-
-        document.getElementById('requestHeadersDisplay').textContent = req.headers ? JSON.stringify(req.headers, null, 2) : '// No Headers';
-
-        // Edit mode (populate textareas)
+        // Populate editors
         queryParamsEditor.setValue(req.queryParams ? JSON.stringify(req.queryParams, null, 2) : '');
         bodyEditor.setValue(req.body ? JSON.stringify(req.body, null, 2) : '');
         headersEditor.setValue(req.headers ? JSON.stringify(req.headers, null, 2) : '');
 
-        // Очистка ответа
+        // Handle form-data if needed
+        if (bodyType === 'form-data') {
+            document.getElementById('requestBodyEdit').classList.add('hidden');
+            document.getElementById('requestFormDataEdit').classList.remove('hidden');
+            loadFormDataFields('requestFormDataFields', req.body || {});
+            setTimeout(() => headersEditor.refresh(), 10);
+        } else {
+            document.getElementById('requestBodyEdit').classList.remove('hidden');
+            document.getElementById('requestFormDataEdit').classList.add('hidden');
+            setTimeout(() => {
+                queryParamsEditor.refresh();
+                bodyEditor.refresh();
+                headersEditor.refresh();
+            }, 10);
+        }
+
+        // Clear response
         document.getElementById('responseArea').textContent = 'Ready to run.';
         document.getElementById('statusBadge').classList.add('hidden');
 
-        // Показать кнопку редактирования
-        document.getElementById('editBtn').classList.remove('hidden');
+        // Hide save button initially
+        document.getElementById('saveChangesBtn').classList.add('hidden');
     }
 
     // 3. Запуск запроса (Run)
@@ -133,7 +183,13 @@
         const envId = document.getElementById('environmentSelect').value;
 
         runBtn.disabled = true;
-        runBtn.innerHTML = '⏳ Running...';
+        // Show spinner
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        runBtn.textContent = '';
+        runBtn.appendChild(spinner);
+        runBtn.appendChild(document.createTextNode('Running...'));
+
         responseArea.innerHTML = '<span class="animate-pulse">Waiting for worker...</span>';
         statusBadge.classList.add('hidden');
         timer.classList.remove('hidden');
@@ -150,7 +206,7 @@
         } catch (err) {
             responseArea.textContent = 'Error: ' + err.message;
             runBtn.disabled = false;
-            runBtn.innerHTML = '▶ Run';
+            runBtn.textContent = '▶ Run';
         }
     }
 
@@ -164,8 +220,9 @@
                 if (run.status === 'SUCCESS' || run.status === 'ERROR') {
                     clearInterval(interval);
                     displayResult(run);
-                    document.getElementById('runBtn').disabled = false;
-                    document.getElementById('runBtn').innerHTML = '▶ Run';
+                    const runBtn = document.getElementById('runBtn');
+                    runBtn.disabled = false;
+                    runBtn.textContent = '▶ Run';
                 }
             } catch (e) {
                 console.error('Polling error', e);
@@ -184,12 +241,12 @@
         if (run.status === 'SUCCESS') {
             statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-200 border border-green-700';
             statusValue.textContent = `${run.responseStatus} OK`;
-            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-green-300 overflow-auto';
+            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-green-300 overflow-auto whitespace-pre-wrap';
             area.textContent = JSON.stringify(run.responseBody, null, 2);
         } else {
             statusBadge.className = 'text-xs px-2 py-1 rounded bg-red-900 text-red-200 border border-red-700';
             statusValue.textContent = 'ERROR';
-            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-red-400 overflow-auto';
+            area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-red-400 overflow-auto whitespace-pre-wrap';
             area.textContent = JSON.stringify({ error: run.error }, null, 2);
         }
 
@@ -273,17 +330,48 @@
             collections.forEach(col => {
                 const el = document.createElement('div');
                 el.className = 'p-3 rounded bg-gray-800 border border-gray-700 mb-2';
-                el.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-bold text-sm text-gray-300 cursor-pointer hover:text-white" onclick="selectCollection({id: ${col.id}, name: '${col.name.replace(/'/g, "\\'")}'})" >📁 ${col.name}</span>
-                        <div class="flex space-x-1">
-                            <button onclick="viewCollectionDetails(${col.id})" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
-                            <button onclick="editCollection(${col.id}, '${col.name.replace(/'/g, "\\'")}');" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
-                            <button onclick="deleteCollection(${col.id});" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500">${col.requests ? col.requests.length : 0} requests</div>
-                `;
+
+                // Top row
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center justify-between mb-2';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-bold text-sm text-gray-300 cursor-pointer hover:text-white';
+                nameSpan.textContent = `📁 ${col.name}`;
+                nameSpan.onclick = () => selectCollection(col);
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'flex space-x-1';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'text-blue-400 hover:text-blue-300 text-xs';
+                viewBtn.textContent = '👁️ View';
+                viewBtn.onclick = () => viewCollectionDetails(col.id);
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'text-yellow-400 hover:text-yellow-300 text-xs';
+                editBtn.textContent = '✏️ Edit';
+                editBtn.onclick = () => editCollection(col.id, col.name);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-400 text-xs';
+                deleteBtn.textContent = '🗑️ Delete';
+                deleteBtn.onclick = () => deleteCollection(col.id);
+
+                buttonsDiv.appendChild(viewBtn);
+                buttonsDiv.appendChild(editBtn);
+                buttonsDiv.appendChild(deleteBtn);
+
+                topRow.appendChild(nameSpan);
+                topRow.appendChild(buttonsDiv);
+
+                // Count row
+                const countDiv = document.createElement('div');
+                countDiv.className = 'text-xs text-gray-500';
+                countDiv.textContent = `${col.requests ? col.requests.length : 0} requests`;
+
+                el.appendChild(topRow);
+                el.appendChild(countDiv);
                 list.appendChild(el);
             });
             // Add the create button back
@@ -361,20 +449,61 @@
                         selectRequest(req);
                         showRequests(); // Switch to requests tab
                     };
-                    reqDiv.innerHTML = `
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-xs ${methodColor} w-16">${req.method}</span>
-                            <span class="text-sm font-medium text-gray-300 flex-1 ml-2 truncate">${req.name}</span>
-                        </div>
-                        <div class="text-xs text-gray-500 truncate">${req.url}</div>
-                        ${req.queryParams ? `<div class="text-xs text-blue-400 mt-1">Query Params: ${Object.keys(req.queryParams).length}</div>` : ''}
-                        ${req.body ? `<div class="text-xs text-green-400 mt-1">Has Body</div>` : ''}
-                        ${req.headers ? `<div class="text-xs text-yellow-400 mt-1">Headers: ${Object.keys(req.headers).length}</div>` : ''}
-                    `;
+
+                    // Top row
+                    const topRow = document.createElement('div');
+                    topRow.className = 'flex items-center justify-between mb-1';
+
+                    const methodSpan = document.createElement('span');
+                    methodSpan.className = `font-bold text-xs ${methodColor} w-16`;
+                    methodSpan.textContent = req.method;
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'text-sm font-medium text-gray-300 flex-1 ml-2 truncate';
+                    nameSpan.textContent = req.name;
+
+                    topRow.appendChild(methodSpan);
+                    topRow.appendChild(nameSpan);
+
+                    // URL row
+                    const urlDiv = document.createElement('div');
+                    urlDiv.className = 'text-xs text-gray-500 truncate';
+                    urlDiv.textContent = req.url;
+
+                    reqDiv.appendChild(topRow);
+                    reqDiv.appendChild(urlDiv);
+
+                    // Query Params
+                    if (req.queryParams && Object.keys(req.queryParams).length > 0) {
+                        const qpDiv = document.createElement('div');
+                        qpDiv.className = 'text-xs text-blue-400 mt-1';
+                        qpDiv.textContent = `Query Params: ${Object.keys(req.queryParams).length}`;
+                        reqDiv.appendChild(qpDiv);
+                    }
+
+                    // Body
+                    if (req.body) {
+                        const bodyDiv = document.createElement('div');
+                        bodyDiv.className = 'text-xs text-green-400 mt-1';
+                        bodyDiv.textContent = 'Has Body';
+                        reqDiv.appendChild(bodyDiv);
+                    }
+
+                    // Headers
+                    if (req.headers && Object.keys(req.headers).length > 0) {
+                        const headersDiv = document.createElement('div');
+                        headersDiv.className = 'text-xs text-yellow-400 mt-1';
+                        headersDiv.textContent = `Headers: ${Object.keys(req.headers).length}`;
+                        reqDiv.appendChild(headersDiv);
+                    }
+
                     container.appendChild(reqDiv);
                 });
             } else {
-                container.innerHTML = '<div class="text-gray-500 text-sm text-center py-4">No requests in this collection</div>';
+                const noReqDiv = document.createElement('div');
+                noReqDiv.className = 'text-gray-500 text-sm text-center py-4';
+                noReqDiv.textContent = 'No requests in this collection';
+                container.appendChild(noReqDiv);
             }
 
             toggleModal('viewCollectionModal', true);
@@ -407,18 +536,43 @@
                 const date = new Date(run.createdAt);
                 const timeAgo = formatTimeAgo(date);
 
-                el.innerHTML = `
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs ${statusColor} font-bold">${run.status}</span>
-                        <span class="text-xs text-gray-500">${timeAgo}</span>
-                    </div>
-                    <div class="text-sm text-gray-300 font-medium mb-1">${run.request?.name || 'Unknown'}</div>
-                    <div class="text-xs text-gray-500">${run.request?.method || 'GET'} ${run.request?.url || ''}</div>
-                    <div class="text-xs text-gray-400 mt-1">
-                        ${run.responseStatus ? `Status: ${run.responseStatus}` : ''}
-                        ${run.durationMs ? `• ${run.durationMs}ms` : ''}
-                    </div>
-                `;
+                // Top row
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center justify-between mb-1';
+
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `text-xs ${statusColor} font-bold`;
+                statusSpan.textContent = run.status;
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'text-xs text-gray-500';
+                timeSpan.textContent = timeAgo;
+
+                topRow.appendChild(statusSpan);
+                topRow.appendChild(timeSpan);
+
+                // Name row
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'text-sm text-gray-300 font-medium mb-1';
+                nameDiv.textContent = run.request?.name || 'Unknown';
+
+                // Method and URL row
+                const methodUrlDiv = document.createElement('div');
+                methodUrlDiv.className = 'text-xs text-gray-500';
+                methodUrlDiv.textContent = `${run.request?.method || 'GET'} ${run.request?.url || ''}`;
+
+                // Details row
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'text-xs text-gray-400 mt-1';
+                const detailsParts = [];
+                if (run.responseStatus) detailsParts.push(`Status: ${run.responseStatus}`);
+                if (run.durationMs) detailsParts.push(`${run.durationMs}ms`);
+                detailsDiv.textContent = detailsParts.join(' • ');
+
+                el.appendChild(topRow);
+                el.appendChild(nameDiv);
+                el.appendChild(methodUrlDiv);
+                el.appendChild(detailsDiv);
                 list.appendChild(el);
             });
         } catch (err) {
@@ -592,18 +746,53 @@
             environments.forEach(env => {
                 const el = document.createElement('div');
                 el.className = 'p-3 rounded bg-gray-800 border border-gray-700';
-                el.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-gray-300">${env.name}</span>
-                        <div class="space-x-2">
-                            <button onclick="viewEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-blue-400 hover:text-blue-300 text-xs">👁️ View</button>
-                            <button onclick="manageEnvironmentVariables(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-purple-400 hover:text-purple-300 text-xs">⚙️ Variables</button>
-                            <button onclick="editEnvironment(${env.id}, '${env.name.replace(/'/g, "\\'")}', '${JSON.stringify(env.variables).replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" class="text-yellow-400 hover:text-yellow-300 text-xs">✏️ Edit</button>
-                            <button onclick="deleteEnvironment(${env.id})" class="text-red-500 hover:text-red-400 text-xs">🗑️ Delete</button>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500">${Object.keys(env.variables || {}).length} variables</div>
-                `;
+
+                // Top row
+                const topRow = document.createElement('div');
+                topRow.className = 'flex justify-between items-center mb-2';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-bold text-gray-300';
+                nameSpan.textContent = env.name;
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'space-x-2';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'text-blue-400 hover:text-blue-300 text-xs';
+                viewBtn.textContent = '👁️ View';
+                viewBtn.onclick = () => viewEnvironment(env.id, env.name, JSON.stringify(env.variables));
+
+                const manageBtn = document.createElement('button');
+                manageBtn.className = 'text-purple-400 hover:text-purple-300 text-xs';
+                manageBtn.textContent = '⚙️ Variables';
+                manageBtn.onclick = () => manageEnvironmentVariables(env.id, env.name, JSON.stringify(env.variables));
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'text-yellow-400 hover:text-yellow-300 text-xs';
+                editBtn.textContent = '✏️ Edit';
+                editBtn.onclick = () => editEnvironment(env.id, env.name, JSON.stringify(env.variables));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-400 text-xs';
+                deleteBtn.textContent = '🗑️ Delete';
+                deleteBtn.onclick = () => deleteEnvironment(env.id);
+
+                buttonsDiv.appendChild(viewBtn);
+                buttonsDiv.appendChild(manageBtn);
+                buttonsDiv.appendChild(editBtn);
+                buttonsDiv.appendChild(deleteBtn);
+
+                topRow.appendChild(nameSpan);
+                topRow.appendChild(buttonsDiv);
+
+                // Count row
+                const countDiv = document.createElement('div');
+                countDiv.className = 'text-xs text-gray-500';
+                countDiv.textContent = `${Object.keys(env.variables || {}).length} variables`;
+
+                el.appendChild(topRow);
+                el.appendChild(countDiv);
                 list.appendChild(el);
             });
         } catch (err) {
@@ -612,7 +801,7 @@
     }
 
     function viewEnvironment(id, name, variablesStr) {
-        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        const variables = JSON.parse(variablesStr);
         document.getElementById('viewEnvironmentName').value = name;
 
         const container = document.getElementById('viewEnvironmentVariables');
@@ -622,14 +811,24 @@
             Object.entries(variables).forEach(([key, value]) => {
                 const varDiv = document.createElement('div');
                 varDiv.className = 'flex gap-2 p-2 bg-gray-900 rounded border border-gray-700';
-                varDiv.innerHTML = `
-                    <span class="text-sm text-purple-400 font-medium w-1/3">${key}</span>
-                    <span class="text-sm text-gray-300 flex-1 break-all">${value}</span>
-                `;
+
+                const keySpan = document.createElement('span');
+                keySpan.className = 'text-sm text-purple-400 font-medium w-1/3';
+                keySpan.textContent = key;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'text-sm text-gray-300 flex-1 break-all';
+                valueSpan.textContent = value;
+
+                varDiv.appendChild(keySpan);
+                varDiv.appendChild(valueSpan);
                 container.appendChild(varDiv);
             });
         } else {
-            container.innerHTML = '<div class="text-gray-500 text-sm">No variables</div>';
+            const noVarsDiv = document.createElement('div');
+            noVarsDiv.className = 'text-gray-500 text-sm';
+            noVarsDiv.textContent = 'No variables';
+            container.appendChild(noVarsDiv);
         }
 
         toggleModal('viewEnvironmentModal', true);
@@ -664,7 +863,7 @@
     }
 
     function editEnvironment(id, name, variablesStr) {
-        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        const variables = JSON.parse(variablesStr);
         document.getElementById('environmentName').value = name;
 
         // Load variables into key-value fields
@@ -705,7 +904,7 @@
 
     function manageEnvironmentVariables(id, name, variablesStr) {
         currentManageEnvId = id;
-        const variables = JSON.parse(variablesStr.replace(/&quot;/g, '"'));
+        const variables = JSON.parse(variablesStr);
 
         document.getElementById('manageVarEnvName').textContent = name;
         displayManageVariables(variables);
@@ -720,15 +919,30 @@
             Object.entries(variables).forEach(([key, value]) => {
                 const varDiv = document.createElement('div');
                 varDiv.className = 'flex gap-2 p-2 bg-gray-900 rounded border border-gray-700 items-center';
-                varDiv.innerHTML = `
-                    <span class="text-sm text-purple-400 font-medium w-1/3 break-all">${key}</span>
-                    <span class="text-sm text-gray-300 flex-1 break-all">${value}</span>
-                    <button onclick="deleteVariable('${key.replace(/'/g, "\\'")}', '${key}')" class="text-red-500 hover:text-red-400 text-sm px-2">✕</button>
-                `;
+
+                const keySpan = document.createElement('span');
+                keySpan.className = 'text-sm text-purple-400 font-medium w-1/3 break-all';
+                keySpan.textContent = key;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'text-sm text-gray-300 flex-1 break-all';
+                valueSpan.textContent = value;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-red-500 hover:text-red-400 text-sm px-2';
+                deleteBtn.textContent = '✕';
+                deleteBtn.onclick = () => deleteVariable(key, key);
+
+                varDiv.appendChild(keySpan);
+                varDiv.appendChild(valueSpan);
+                varDiv.appendChild(deleteBtn);
                 container.appendChild(varDiv);
             });
         } else {
-            container.innerHTML = '<div class="text-gray-500 text-sm">No variables yet. Add one below.</div>';
+            const noVarsDiv = document.createElement('div');
+            noVarsDiv.className = 'text-gray-500 text-sm';
+            noVarsDiv.textContent = 'No variables yet. Add one below.';
+            container.appendChild(noVarsDiv);
         }
     }
 
@@ -1083,69 +1297,13 @@
         }
     }
 
+    // Save changes from editable fields
+    async function saveChanges() {
+        if (!currentRequestId) return;
 
-    function toggleEditMode() {
-        if (!currentRequest) return;
-
-        // Make URL input editable and populate with current values
-        const urlInput = document.getElementById('urlInput');
-        urlInput.removeAttribute('readonly');
-        urlInput.classList.add('cursor-text');
-
-        // Make method badge editable - convert to select
-        const methodBadge = document.getElementById('methodBadge');
-        const currentMethod = currentRequest.method;
-        methodBadge.outerHTML = `
-            <select id="methodSelect" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm text-gray-100 cursor-pointer">
-                <option value="GET" ${currentMethod === 'GET' ? 'selected' : ''}>GET</option>
-                <option value="POST" ${currentMethod === 'POST' ? 'selected' : ''}>POST</option>
-                <option value="PUT" ${currentMethod === 'PUT' ? 'selected' : ''}>PUT</option>
-                <option value="DELETE" ${currentMethod === 'DELETE' ? 'selected' : ''}>DELETE</option>
-                <option value="PATCH" ${currentMethod === 'PATCH' ? 'selected' : ''}>PATCH</option>
-            </select>
-        `;
-
-        // Detect body type
-        const isFormData = currentRequest.body && typeof currentRequest.body === 'object' && !Array.isArray(currentRequest.body);
-        const bodyType = isFormData ? 'form-data' : 'json';
-
-        // Hide display elements, show edit elements
-        document.getElementById('requestQueryParamsDisplay').classList.add('hidden');
-        document.getElementById('requestQueryParamsEdit').classList.remove('hidden');
-        document.getElementById('bodyTypeDisplay').classList.add('hidden');
-        document.getElementById('requestBodyDisplay').classList.add('hidden');
-        document.getElementById('requestBodyEditContainer').classList.remove('hidden');
-        document.getElementById('requestHeadersDisplay').classList.add('hidden');
-        document.getElementById('requestHeadersEdit').classList.remove('hidden');
-
-        // Set body type selector
-        document.getElementById('requestBodyTypeEdit').value = bodyType;
-
-        if (bodyType === 'form-data') {
-            document.getElementById('requestBodyEdit').classList.add('hidden');
-            document.getElementById('requestFormDataEdit').classList.remove('hidden');
-            loadFormDataFields('requestFormDataFields', currentRequest.body);
-        } else {
-            document.getElementById('requestBodyEdit').classList.remove('hidden');
-            document.getElementById('requestFormDataEdit').classList.add('hidden');
-        }
-
-        // Hide edit button, show save and discard
-        document.getElementById('editBtn').classList.add('hidden');
-        document.getElementById('saveBtn').classList.remove('hidden');
-        document.getElementById('discardBtn').classList.remove('hidden');
-
-        setTimeout(() => {
-            queryParamsEditor.refresh();
-            bodyEditor.refresh();
-            headersEditor.refresh();
-        }, 10);
-    }
-
-    function saveChanges() {
-        const method = document.getElementById('methodSelect')?.value || currentRequest.method;
+        const method = document.getElementById('methodSelect').value;
         const url = document.getElementById('urlInput').value;
-        const bodyType = document.getElementById('requestBodyTypeEdit')?.value || 'json';
+        const bodyType = document.getElementById('requestBodyTypeEdit').value;
         const queryParamsText = queryParamsEditor.getValue().trim();
         const headersText = headersEditor.getValue().trim();
 
@@ -1172,67 +1330,34 @@
             return;
         }
 
-        // Update the request via API
-        fetch(`${API_URL}/requests/${currentRequestId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ method, url, queryParams, body, headers })
-        }).then(res => {
+        try {
+            const res = await fetch(`${API_URL}/requests/${currentRequestId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ method, url, queryParams, body, headers })
+            });
+
             if (res.ok) {
-                return res.json();
+                const updatedRequest = await res.json();
+                currentRequest = updatedRequest;
+                loadRequests(currentCollectionId);
+
+                // Hide save button
+                document.getElementById('saveChangesBtn').classList.add('hidden');
+                alert('✅ Changes saved successfully!');
             } else {
-                throw new Error('Error saving changes');
+                alert('Error saving changes');
             }
-        }).then(updatedRequest => {
-            // Update current request
-            currentRequest = updatedRequest;
-
-            // Update display
-            document.getElementById('requestQueryParamsDisplay').textContent = queryParams ? JSON.stringify(queryParams, null, 2) : '// No Query Params';
-            document.getElementById('requestBodyDisplay').textContent = body ? JSON.stringify(body, null, 2) : '// No Body';
-            document.getElementById('requestHeadersDisplay').textContent = headers ? JSON.stringify(headers, null, 2) : '// No Headers';
-
-            // Update body type display
-            const bodyTypeDisplay = bodyType === 'form-data' ? 'Form-Data' : 'JSON';
-            document.getElementById('bodyTypeValue').textContent = bodyTypeDisplay;
-
-            // Refresh the requests list
-            loadRequests(currentCollectionId);
-
-            // Switch back to display mode
-            discardChanges();
-        }).catch(err => alert('Error: ' + err.message));
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
     }
 
-    function discardChanges() {
-        // Restore method badge
-        const methodSelect = document.getElementById('methodSelect');
-        if (methodSelect && currentRequest) {
-            const method = currentRequest.method;
-            methodSelect.outerHTML = `<span id="methodBadge" class="px-3 py-1 rounded font-mono font-bold text-sm text-gray-900 ${getMethodColorBg(method)}">${method}</span>`;
+    // Show save button when fields change
+    function markAsChanged() {
+        if (currentRequestId) {
+            document.getElementById('saveChangesBtn').classList.remove('hidden');
         }
-
-        // Make URL input readonly again
-        const urlInput = document.getElementById('urlInput');
-        urlInput.setAttribute('readonly', 'readonly');
-        urlInput.classList.remove('cursor-text');
-        if (currentRequest) {
-            urlInput.value = currentRequest.url;
-        }
-
-        // Show display, hide edit
-        document.getElementById('requestQueryParamsDisplay').classList.remove('hidden');
-        document.getElementById('requestQueryParamsEdit').classList.add('hidden');
-        document.getElementById('bodyTypeDisplay').classList.remove('hidden');
-        document.getElementById('requestBodyDisplay').classList.remove('hidden');
-        document.getElementById('requestBodyEditContainer').classList.add('hidden');
-        document.getElementById('requestHeadersDisplay').classList.remove('hidden');
-        document.getElementById('requestHeadersEdit').classList.add('hidden');
-
-        // Show edit button, hide save and discard
-        document.getElementById('editBtn').classList.remove('hidden');
-        document.getElementById('saveBtn').classList.add('hidden');
-        document.getElementById('discardBtn').classList.add('hidden');
     }
 
     // Universal modal toggle function
@@ -1256,9 +1381,7 @@
     document.getElementById('importBtn').addEventListener('click', showImportCollectionModal);
     document.getElementById('exportBtn').addEventListener('click', showExportCollectionModal);
     document.getElementById('environmentsBtn').addEventListener('click', showManageEnvironmentsModal);
-    document.getElementById('editBtn').addEventListener('click', toggleEditMode);
-    document.getElementById('saveBtn').addEventListener('click', saveChanges);
-    document.getElementById('discardBtn').addEventListener('click', discardChanges);
+    document.getElementById('saveChangesBtn').addEventListener('click', saveChanges);
     document.getElementById('runBtn').addEventListener('click', runCurrentRequest);
     document.getElementById('newEnvironmentBtn').addEventListener('click', showCreateEnvironmentModal);
     document.getElementById('cancelCreateRequest').addEventListener('click', hideCreateRequestModal);
@@ -1279,6 +1402,11 @@
         toggleModal('viewRunModal', false);
     });
 
+    // Track changes to show save button
+    document.getElementById('methodSelect').addEventListener('change', markAsChanged);
+    document.getElementById('urlInput').addEventListener('input', markAsChanged);
+    document.getElementById('requestBodyTypeEdit').addEventListener('change', markAsChanged);
+
     // Body type switching for create modal
     document.getElementById('newRequestBodyType').addEventListener('change', (e) => {
         const isFormData = e.target.value === 'form-data';
@@ -1293,6 +1421,7 @@
 
     document.getElementById('addRequestFormDataField').addEventListener('click', () => {
         addFormDataField('requestFormDataFields');
+        markAsChanged();
     });
 
     // Add environment variable button
@@ -1310,6 +1439,7 @@
             if (isFormData && currentRequest) {
                 loadFormDataFields('requestFormDataFields', currentRequest.body || {});
             }
+            markAsChanged();
         }
     });
 
@@ -1346,6 +1476,11 @@
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
         viewportMargin: Infinity
     });
+
+    // Track changes in CodeMirror editors
+    queryParamsEditor.on('change', markAsChanged);
+    bodyEditor.on('change', markAsChanged);
+    headersEditor.on('change', markAsChanged);
 
     const newRequestQueryParamsEditor = CodeMirror.fromTextArea(document.getElementById('newRequestQueryParams'), {
         mode: 'application/json',

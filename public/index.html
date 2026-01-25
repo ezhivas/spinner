@@ -52,6 +52,28 @@
         .CodeMirror-lint-marker-error {
             /* background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAAAAAAENyZWF0ZWQgd2l0aCBHSU1QZC5lBwAAAFBJREFUCNdj/P//PwOgcAVDDGgYQRhBGMIQxhgGGMYwhjFGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxBjGGMYYxAAAAABJRU5ErkJggg==') no-repeat center; */
         }
+
+        /* Spinner animation */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden font-sans">
@@ -96,20 +118,24 @@
 
     <div class="p-4 bg-gray-800 border-b border-gray-700">
         <div class="flex items-center space-x-2 mb-2">
-            <span id="methodBadge" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm">METHOD</span>
-            <input type="text" id="urlInput" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500" readonly placeholder="Select a request...">
+            <select id="methodSelect" class="px-3 py-1 bg-gray-700 rounded font-mono font-bold text-sm text-gray-100 cursor-pointer focus:outline-none focus:border-blue-500 border border-transparent">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+            </select>
+            <input type="text" id="urlInput" class="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Select a request...">
             <select id="environmentSelect" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 focus:outline-none focus:border-blue-500">
                 <option value="">No Environment</option>
             </select>
-            <button id="editBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded font-bold hidden">Edit</button>
-            <button id="saveBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold hidden">Save</button>
-            <button id="discardBtn" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded font-bold hidden">Discard</button>
+            <button id="saveChangesBtn" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold hidden">💾 Save</button>
             <button id="runBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 ▶ Run
             </button>
         </div>
         <div class="text-xs text-gray-500">
-            💡 Use <code class="bg-gray-900 px-1 rounded text-purple-400">{{ VARIABLE_NAME }}</code> to insert environment variables in URL, headers, query params, or body
+            💡 Use <code class="bg-gray-900 px-1 rounded text-purple-400">{{ VARIABLE_NAME }}</code> to insert environment variables. Edit fields directly and click Save.
         </div>
     </div>
 
@@ -117,13 +143,10 @@
 
         <div class="w-1/2 p-4 border-r border-gray-700 overflow-y-auto">
             <h3 class="text-gray-400 text-xs font-bold uppercase mb-2">Query Params (JSON)</h3>
-            <pre id="requestQueryParamsDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-blue-400"></pre>
-            <textarea id="requestQueryParamsEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-blue-400 w-full hidden" placeholder="Enter JSON query params..."></textarea>
+            <textarea id="requestQueryParamsEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-blue-400 w-full" placeholder="Enter JSON query params..."></textarea>
 
             <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Request Body</h3>
-            <div id="bodyTypeDisplay" class="text-xs text-gray-500 mb-2">Type: <span id="bodyTypeValue">JSON</span></div>
-            <pre id="requestBodyDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-green-400 min-h-[100px]"></pre>
-            <div id="requestBodyEditContainer" class="hidden">
+            <div class="mb-2">
                 <select id="requestBodyTypeEdit" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 mb-2 text-sm">
                     <option value="json">JSON</option>
                     <option value="form-data">Form-Data</option>
@@ -135,9 +158,8 @@
                 </div>
             </div>
 
-            <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Headers</h3>
-            <pre id="requestHeadersDisplay" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400"></pre>
-            <textarea id="requestHeadersEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400 w-full hidden" placeholder="Enter JSON headers..."></textarea>
+            <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">Headers (JSON)</h3>
+            <textarea id="requestHeadersEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400 w-full" placeholder="Enter JSON headers..."></textarea>
         </div>
 
         <div class="w-1/2 p-4 bg-gray-900 overflow-y-auto flex flex-col">
@@ -147,7 +169,7 @@
                 <div id="timer" class="text-xs text-gray-500 font-mono hidden">Time: <span id="timerValue">0ms</span></div>
             </div>
 
-            <div id="responseArea" class="flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-gray-300 overflow-auto">
+            <div id="responseArea" class="flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-gray-300 overflow-auto whitespace-pre-wrap">
                 Select a request and click Run.
             </div>
         </div>
