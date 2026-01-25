@@ -30,6 +30,16 @@ export class CreateRequestDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
+  bodyType?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  postRequestScript?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
   collectionId?: number;
 }

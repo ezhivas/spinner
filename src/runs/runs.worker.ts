@@ -3,12 +3,14 @@ import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
+import { PostRequestScriptService } from '../requests/post-request-script.service';
 import { RequestRunEntity } from './request-run.entity';
 
 export function startRunsWorker(
   dataSource: DataSource,
   httpExecutor: HttpExecutorService,
   variableResolver: VariableResolverService,
+  postRequestScriptService: PostRequestScriptService,
 ) {
   const logger = new Logger('RunsWorker');
 
@@ -60,6 +62,21 @@ export function startRunsWorker(
         };
 
         const result = await httpExecutor.execute(config);
+
+        // Execute post-request script if exists
+        if (run.request.postRequestScript) {
+          const scriptResult = await postRequestScriptService.executeScript(
+            run.request.postRequestScript,
+            result.responseStatus || 0,
+            result.responseHeaders || {},
+            result.responseBody,
+            run.environment,
+          );
+
+          if (!scriptResult.success) {
+            logger.error(`Post-request script failed for run ${run.id}: ${scriptResult.error}`);
+          }
+        }
 
         run.status = result.status;
         run.responseStatus = result.responseStatus;

@@ -11,6 +11,8 @@ import { BullmqModule } from './queue/bullmq.module';
 import { CollectionsModule } from './collections/collections.module';
 import { BackupModule } from './backup/backup.module';
 import { getDatabaseConfig } from './config/database.config';
+import { PostRequestScriptService } from './requests/post-request-script.service';
+import { EnvironmentEntity } from './environments/environment.entity';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { getDatabaseConfig } from './config/database.config';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
+    TypeOrmModule.forFeature([EnvironmentEntity]),
     RequestsModule,
     EnvironmentsModule,
     RunsModule,
@@ -27,6 +30,7 @@ import { getDatabaseConfig } from './config/database.config';
     BackupModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, PostRequestScriptService],
+  exports: [PostRequestScriptService],
 })
 export class AppModule {}

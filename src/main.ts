@@ -6,6 +6,7 @@ import { startRunsWorker } from './runs/runs.worker';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExecutorService } from './http-executor/http-executor.service';
 import { VariableResolverService } from './environments/variable-resolver.service';
+import { PostRequestScriptService } from './requests/post-request-script.service';
 import * as express from 'express';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -47,7 +48,8 @@ async function bootstrap() {
     const dataSource = app.get(DataSource);
     const httpExecutor = app.get(HttpExecutorService);
     const variableResolver = app.get(VariableResolverService);
-    startRunsWorker(dataSource, httpExecutor, variableResolver);
+    const postRequestScriptService = app.get(PostRequestScriptService);
+    startRunsWorker(dataSource, httpExecutor, variableResolver, postRequestScriptService);
     console.log('✅ Runs worker started successfully');
   } catch (error) {
     console.error('❌ Failed to start runs worker:', error);

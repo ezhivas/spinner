@@ -239,6 +239,14 @@
             <div class="w-full overflow-hidden" style="max-width: 100%;">
                 <textarea id="requestHeadersEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-yellow-400 w-full" placeholder="Enter JSON headers..."></textarea>
             </div>
+
+            <h3 class="text-gray-400 text-xs font-bold uppercase mt-4 mb-2">
+                Post-Request Script
+                <span class="text-gray-500 text-[10px] font-normal">(JavaScript - runs after response)</span>
+            </h3>
+            <div class="w-full overflow-hidden" style="max-width: 100%;">
+                <textarea id="postRequestScriptEdit" class="bg-gray-900 p-3 rounded border border-gray-700 text-sm text-purple-400 w-full font-mono min-h-[120px]" placeholder="// Example: Save token to environment&#10;const response = pm.response.json();&#10;pm.environment.set('TOKEN', response.token);&#10;&#10;// Available APIs:&#10;// pm.response.json() - response as JSON&#10;// pm.response.status - status code&#10;// pm.environment.set(key, value)&#10;// pm.environment.get(key)"></textarea>
+            </div>
         </div>
 
         <div class="p-4 bg-gray-900 overflow-y-auto flex flex-col flex-shrink-0 overflow-x-hidden" style="flex-basis: 50%; width: 50%; min-width: 0; max-width: 50%;">
@@ -303,6 +311,13 @@
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Headers (JSON)</label>
                 <textarea id="newRequestHeaders" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="1" placeholder='{"Authorization": "Bearer {{ API_TOKEN }}"}'></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">
+                    Post-Request Script
+                    <span class="text-gray-500 text-xs">(optional - runs after response)</span>
+                </label>
+                <textarea id="newRequestPostScript" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 font-mono text-sm" rows="3" placeholder="// Example:&#10;const data = pm.response.json();&#10;pm.environment.set('TOKEN', data.token);"></textarea>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-1">Collection</label>

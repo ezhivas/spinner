@@ -7,6 +7,7 @@ import { EnvironmentEntity } from '../environments/environment.entity';
 import { Queue } from 'bullmq';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
+import { PostRequestScriptService } from '../requests/post-request-script.service';
 
 @Injectable()
 export class RunsService {
@@ -28,6 +29,7 @@ export class RunsService {
 
     private readonly httpExecutor: HttpExecutorService,
     private readonly variableResolver: VariableResolverService,
+    private readonly postRequestScriptService: PostRequestScriptService,
   ) {}
 
   async runRequest(requestId: number, environmentId?: number) {
@@ -96,6 +98,22 @@ export class RunsService {
 
       // Execute HTTP request
       const result = await this.httpExecutor.execute(config);
+
+      // Execute post-request script if exists
+      let scriptResult;
+      if (run.request.postRequestScript) {
+        scriptResult = await this.postRequestScriptService.executeScript(
+          run.request.postRequestScript,
+          result.responseStatus || 0,
+          result.responseHeaders || {},
+          result.responseBody,
+          run.environment,
+        );
+
+        if (!scriptResult.success) {
+          console.error('Post-request script failed:', scriptResult.error);
+        }
+      }
 
       // Update run with results
       await this.runRepo.update(run.id, {

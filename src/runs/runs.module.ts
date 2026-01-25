@@ -8,6 +8,7 @@ import { EnvironmentEntity } from '../environments/environment.entity';
 import { EnvironmentsModule } from '../environments/environments.module';
 import { HttpExecutorModule } from '../http-executor/http-executor.module';
 import { BullmqModule } from '../queue/bullmq.module';
+import { PostRequestScriptService } from '../requests/post-request-script.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { BullmqModule } from '../queue/bullmq.module';
     HttpExecutorModule,
     BullmqModule,
   ],
-  providers: [RunsService],
+  providers: [RunsService, PostRequestScriptService],
   controllers: [RunsController],
 })
 export class RunsModule {}

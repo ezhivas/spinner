@@ -40,6 +40,9 @@ export class RequestEntity {
   @JsonColumn({ nullable: true })
   body: any;
 
+  @Column({ type: 'varchar', nullable: true, default: 'json' })
+  bodyType?: string;
+
   @Column({ nullable: true })
   collectionId?: number;
 
@@ -48,6 +51,9 @@ export class RequestEntity {
     onDelete: 'CASCADE',
   })
   collection?: CollectionEntity | null;
+
+  @Column({ type: 'text', nullable: true })
+  postRequestScript?: string;
 
   @CreateDateColumn()
   createdAt: Date;

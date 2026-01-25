@@ -385,39 +385,25 @@
         document.getElementById('methodSelect').value = req.method;
         document.getElementById('urlInput').value = req.url;
 
-        // Detect body type
-        // Form-data: flat object with all values being primitives (strings, numbers, booleans)
-        // JSON: anything else (nested objects, arrays, etc.)
-        let bodyType = 'json';
-        if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
-            // Check if it's a flat object with only primitive values
-            const values = Object.values(req.body);
-            const allPrimitive = values.every(val =>
-                val === null ||
-                typeof val === 'string' ||
-                typeof val === 'number' ||
-                typeof val === 'boolean'
-            );
-
-            // If all values are primitive and no nested objects/arrays, it's likely form-data
-            if (allPrimitive && values.length > 0) {
-                bodyType = 'form-data';
-            }
-        }
-
+        // Use saved bodyType or default to 'json'
+        const bodyType = req.bodyType || 'json';
         document.getElementById('requestBodyTypeEdit').value = bodyType;
 
         // Populate editors with formatted JSON
         queryParamsEditor.setValue(formatJSON(req.queryParams));
         bodyEditor.setValue(formatJSON(req.body));
         headersEditor.setValue(formatJSON(req.headers));
+        postRequestScriptEditor.setValue(req.postRequestScript || '');
 
         // Handle form-data if needed
         if (bodyType === 'form-data') {
             document.getElementById('requestBodyEdit').classList.add('hidden');
             document.getElementById('requestFormDataEdit').classList.remove('hidden');
             loadFormDataFields('requestFormDataFields', req.body || {});
-            setTimeout(() => headersEditor.refresh(), 10);
+            setTimeout(() => {
+                headersEditor.refresh();
+                postRequestScriptEditor.refresh();
+            }, 10);
         } else {
             document.getElementById('requestBodyEdit').classList.remove('hidden');
             document.getElementById('requestFormDataEdit').classList.add('hidden');
@@ -425,6 +411,7 @@
                 queryParamsEditor.refresh();
                 bodyEditor.refresh();
                 headersEditor.refresh();
+                postRequestScriptEditor.refresh();
             }, 10);
         }
 
@@ -1890,6 +1877,7 @@
         const bodyType = document.getElementById('newRequestBodyType').value;
         const queryParamsText = newRequestQueryParamsEditor.getValue().trim();
         const headersText = newRequestHeadersEditor.getValue().trim();
+        const postRequestScript = newRequestPostScriptEditor.getValue().trim();
         const collectionId = document.getElementById('newRequestCollection').value;
 
         let queryParams = null;
@@ -1919,7 +1907,17 @@
             const res = await fetch(`${API_URL}/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, method, url, queryParams, body, headers, collectionId })
+                body: JSON.stringify({
+                    name,
+                    method,
+                    url,
+                    queryParams,
+                    body,
+                    bodyType,
+                    headers,
+                    postRequestScript: postRequestScript || null,
+                    collectionId
+                })
             });
             if (res.ok) {
                 const newRequest = await res.json();
@@ -2108,7 +2106,15 @@
             const res = await fetch(`${API_URL}/requests/${currentRequestId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ method, url, queryParams, body, headers })
+                body: JSON.stringify({
+                    method,
+                    url,
+                    queryParams,
+                    body,
+                    bodyType,
+                    headers,
+                    postRequestScript: postRequestScriptEditor.getValue().trim() || null
+                })
             });
 
             if (res.ok) {
@@ -2309,6 +2315,33 @@
         viewportMargin: 10
     });
     newRequestHeadersEditor.getWrapperElement().style.width = '100%';
+
+    // Post-request script editors
+    const postRequestScriptEditor = CodeMirror.fromTextArea(document.getElementById('postRequestScriptEdit'), {
+        mode: 'javascript',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: 10
+    });
+    postRequestScriptEditor.getWrapperElement().style.width = '100%';
+    postRequestScriptEditor.getScrollerElement().style.maxWidth = '100%';
+    postRequestScriptEditor.on('change', markAsChanged);
+
+    const newRequestPostScriptEditor = CodeMirror.fromTextArea(document.getElementById('newRequestPostScript'), {
+        mode: 'javascript',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: 10
+    });
+    newRequestPostScriptEditor.getWrapperElement().style.width = '100%';
 
     const importJsonEditor = CodeMirror.fromTextArea(document.getElementById('importJson'), {
         mode: 'application/json',
