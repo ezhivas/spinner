@@ -7,9 +7,11 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExecutorService } from './http-executor/http-executor.service';
 import { VariableResolverService } from './environments/variable-resolver.service';
 import * as express from 'express';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Increase payload limit for JSON and URL-encoded requests
   app.use(express.json({ limit: '10mb' }));
@@ -17,6 +19,18 @@ async function bootstrap() {
 
   // Global logging
   app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // Check if running in Electron mode
+  const isElectron = process.env.DB_TYPE === 'sqlite';
+
+  if (isElectron) {
+    console.log('🚀 Running in Electron mode');
+    // Serve static files (frontend) in Electron mode
+    app.useStaticAssets(join(__dirname, '..', 'public'));
+    console.log('📁 Serving static files from:', join(__dirname, '..', 'public'));
+  } else {
+    console.log('🚀 Running in Docker mode');
+  }
 
   // Swagger
   const config = new DocumentBuilder()
@@ -34,14 +48,20 @@ async function bootstrap() {
     const httpExecutor = app.get(HttpExecutorService);
     const variableResolver = app.get(VariableResolverService);
     startRunsWorker(dataSource, httpExecutor, variableResolver);
-    console.log('Runs worker started successfully');
+    console.log('✅ Runs worker started successfully');
   } catch (error) {
-    console.error('Failed to start runs worker:', error);
+    console.error('❌ Failed to start runs worker:', error);
   }
 
   app.enableCors();
 
-  await app.listen(3000);
+  // Use dynamic port from environment or default to 3000
+  const port = parseInt(process.env.PORT || '3000');
+  await app.listen(port);
+
+  console.log(`✅ Nest application successfully started on port ${port}`);
+  console.log(`🌐 API available at: http://localhost:${port}`);
+  console.log(`📚 Swagger docs at: http://localhost:${port}/api`);
 }
 
 bootstrap();

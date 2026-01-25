@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { CollectionEntity } from '../collections/collection.entity';
 import { JsonColumn } from '../common/decorators/json-column.decorator';
+import { EnumColumn } from '../common/decorators/enum-column.decorator';
 
 export enum HttpMethod {
   GET = 'GET',
@@ -24,10 +25,7 @@ export class RequestEntity {
   @Column()
   name: string;
 
-  @Column({
-    type: 'enum',
-    enum: HttpMethod,
-  })
+  @EnumColumn({ enum: HttpMethod })
   method: HttpMethod;
 
   @Column()
