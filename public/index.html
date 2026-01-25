@@ -27,16 +27,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <style>
         .CodeMirror {
-            height: auto;        /* Разрешает блоку расти */
-            min-height: 120px;   /* Задает начальную высоту в ~5 строк */
+            height: auto;
+            min-height: 120px;
+            max-height: 400px;
             border: 1px solid #373a40;
+            font-size: 13px;
         }
 
-        /* Важно: внутренняя область прокрутки тоже должна наследовать минимум,
-           иначе клик по пустой области снизу не сфокусирует редактор */
         .CodeMirror-scroll {
             min-height: 120px;
+            max-height: 400px;
+            overflow-y: auto;
         }
+
         .CodeMirror-gutters {
             background: #2c2e33;
             border-right: 1px solid #373a40;
@@ -74,9 +77,67 @@
             margin-right: 8px;
             vertical-align: middle;
         }
+
+        /* Toast notifications */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast {
+            animation: slideInRight 0.3s ease-out;
+            pointer-events: auto;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.hiding {
+            animation: slideOutRight 0.3s ease-in;
+        }
+
+        .toast-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-left: 4px solid #047857;
+        }
+
+        .toast-error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-left: 4px solid #b91c1c;
+        }
+
+        .toast-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-left: 4px solid #b45309;
+        }
+
+        .toast-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-left: 4px solid #1d4ed8;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden font-sans">
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
 
 <div class="w-1/4 bg-gray-800 border-r border-gray-700 flex flex-col">
     <div class="p-4 border-b border-gray-700 font-bold text-xl flex justify-between items-center">
@@ -538,6 +599,31 @@
                 <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded">🗑️ Clean</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[10000]">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 border border-gray-700">
+        <h2 class="text-xl font-bold mb-3 text-white" id="confirmTitle">Confirm Action</h2>
+        <p class="text-gray-300 mb-6" id="confirmMessage">Are you sure?</p>
+        <div class="flex justify-end space-x-2">
+            <button id="confirmCancel" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+            <button id="confirmOk" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Prompt Modal -->
+<div id="promptModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[10000]">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4 border border-gray-700">
+        <h2 class="text-xl font-bold mb-3 text-white" id="promptTitle">Enter Value</h2>
+        <p class="text-gray-400 text-sm mb-3" id="promptMessage"></p>
+        <input type="text" id="promptInput" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300 mb-4 focus:outline-none focus:border-blue-500" placeholder="">
+        <div class="flex justify-end space-x-2">
+            <button id="promptCancel" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+            <button id="promptOk" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded">OK</button>
+        </div>
     </div>
 </div>
 

@@ -4,6 +4,220 @@
     let isEditMode = false;
     let currentCollectionId = null;
 
+    // Toast notification system
+    function showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+
+        toast.className = `toast toast-${type} p-4 rounded-lg text-white flex items-start gap-3`;
+        toast.innerHTML = `
+            <span class="text-2xl flex-shrink-0">${icons[type]}</span>
+            <div class="flex-1">
+                <p class="text-sm font-medium leading-relaxed">${message}</p>
+            </div>
+            <button class="text-white hover:text-gray-200 ml-2 flex-shrink-0" onclick="this.parentElement.remove()">✕</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove after duration
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => {
+                toast.remove();
+            }, 300); // Match animation duration
+        }, duration);
+
+        return toast;
+    }
+
+    // Enhanced confirm dialog
+    let confirmCallback = null;
+    let cancelCallback = null;
+
+    function showConfirm(message, onConfirm, onCancel, title = 'Confirm Action') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmTitle');
+            const messageEl = document.getElementById('confirmMessage');
+            const okBtn = document.getElementById('confirmOk');
+            const cancelBtn = document.getElementById('confirmCancel');
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+
+            // Remove old listeners
+            const newOkBtn = okBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            // Add new listeners
+            newOkBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onConfirm) onConfirm();
+                resolve(true);
+            });
+
+            newCancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                if (onCancel) onCancel();
+                resolve(false);
+            });
+
+            modal.classList.remove('hidden');
+        });
+    }
+
+    // Enhanced prompt dialog
+    function showPrompt(message, defaultValue = '', title = 'Enter Value', placeholder = '') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('promptModal');
+            const titleEl = document.getElementById('promptTitle');
+            const messageEl = document.getElementById('promptMessage');
+            const inputEl = document.getElementById('promptInput');
+            const okBtn = document.getElementById('promptOk');
+            const cancelBtn = document.getElementById('promptCancel');
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            inputEl.value = defaultValue;
+            inputEl.placeholder = placeholder;
+
+            // Remove old listeners
+            const newOkBtn = okBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            // Add new listeners
+            const handleOk = () => {
+                const value = inputEl.value.trim();
+                modal.classList.add('hidden');
+                resolve(value || null);
+            };
+
+            const handleCancel = () => {
+                modal.classList.add('hidden');
+                resolve(null);
+            };
+
+            newOkBtn.addEventListener('click', handleOk);
+            newCancelBtn.addEventListener('click', handleCancel);
+
+            // Enter key to submit
+            inputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleOk();
+                }
+            });
+
+            // Escape key to cancel
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    handleCancel();
+                }
+            });
+
+            modal.classList.remove('hidden');
+
+            // Focus input and select text
+            setTimeout(() => {
+                inputEl.focus();
+                inputEl.select();
+            }, 100);
+        });
+    }
+
+    // Error handling utilities
+    function logError(context, error, details = {}) {
+        console.error(`❌ [${context}]`, error, details);
+    }
+
+    function logInfo(message, details = {}) {
+        console.log(`ℹ️ ${message}`, details);
+    }
+
+    function logSuccess(message, details = {}) {
+        console.log(`✅ ${message}`, details);
+    }
+
+    function handleCriticalError(context, error, userMessage) {
+        logError(context, error);
+        showToast(userMessage || `Error in ${context}: ${error.message}`, 'error', 5000);
+    }
+
+    function handleNonCriticalError(context, error) {
+        logError(context, error);
+        // Don't show toast for non-critical errors, just log
+    }
+
+    function showSuccessToast(message) {
+        showToast(message, 'success', 3000);
+    }
+
+    function showErrorToast(message) {
+        showToast(message, 'error', 5000);
+    }
+
+    function showWarningToast(message) {
+        showToast(message, 'warning', 4000);
+    }
+
+    function showInfoToast(message) {
+        showToast(message, 'info', 3000);
+    }
+
+    // Safe DOM element getter with fallback
+    function safeGetElement(id, fallback = null) {
+        try {
+            const element = document.getElementById(id);
+            if (!element) {
+                logError('DOM', `Element with id "${id}" not found`);
+                return fallback;
+            }
+            return element;
+        } catch (err) {
+            handleNonCriticalError('safeGetElement', err);
+            return fallback;
+        }
+    }
+
+    // Safe JSON formatting
+    function formatJSON(value) {
+        if (!value) return '';
+
+        try {
+            // If it's already an object, stringify it
+            if (typeof value === 'object') {
+                return JSON.stringify(value, null, 2);
+            }
+
+            // If it's a string, try to parse and re-stringify
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    return JSON.stringify(parsed, null, 2);
+                } catch {
+                    // Not valid JSON, return as is
+                    return value;
+                }
+            }
+
+            return String(value);
+        } catch (err) {
+            logError('formatJSON', err);
+            return String(value);
+        }
+    }
+
     // Form-Data utilities
     function addFormDataField(containerId, key = '', value = '') {
         const container = document.getElementById(containerId);
@@ -77,7 +291,13 @@
         try {
             const url = collectionId ? `${API_URL}/requests?collectionId=${collectionId}` : `${API_URL}/requests`;
             const res = await fetch(url);
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+
             const requests = await res.json();
+            logSuccess('Requests loaded', { count: requests.length });
 
             list.innerHTML = '';
             requests.forEach(req => {
@@ -126,7 +346,8 @@
                 list.appendChild(el);
             });
         } catch (err) {
-            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error connecting to backend.<br>Did you enable CORS?</div>`;
+            handleCriticalError('loadRequests', err, 'Failed to load requests. Please check your connection.');
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading requests.<br>Check console for details.</div>`;
         }
     }
 
@@ -140,13 +361,31 @@
         document.getElementById('urlInput').value = req.url;
 
         // Detect body type
-        const bodyType = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? 'form-data' : 'json';
+        // Form-data: flat object with all values being primitives (strings, numbers, booleans)
+        // JSON: anything else (nested objects, arrays, etc.)
+        let bodyType = 'json';
+        if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+            // Check if it's a flat object with only primitive values
+            const values = Object.values(req.body);
+            const allPrimitive = values.every(val =>
+                val === null ||
+                typeof val === 'string' ||
+                typeof val === 'number' ||
+                typeof val === 'boolean'
+            );
+
+            // If all values are primitive and no nested objects/arrays, it's likely form-data
+            if (allPrimitive && values.length > 0) {
+                bodyType = 'form-data';
+            }
+        }
+
         document.getElementById('requestBodyTypeEdit').value = bodyType;
 
-        // Populate editors
-        queryParamsEditor.setValue(req.queryParams ? JSON.stringify(req.queryParams, null, 2) : '');
-        bodyEditor.setValue(req.body ? JSON.stringify(req.body, null, 2) : '');
-        headersEditor.setValue(req.headers ? JSON.stringify(req.headers, null, 2) : '');
+        // Populate editors with formatted JSON
+        queryParamsEditor.setValue(formatJSON(req.queryParams));
+        bodyEditor.setValue(formatJSON(req.body));
+        headersEditor.setValue(formatJSON(req.headers));
 
         // Handle form-data if needed
         if (bodyType === 'form-data') {
@@ -283,7 +522,7 @@
 
     function showCollectionRequests() {
         if (!currentCollectionId) {
-            alert('Please select a collection first.');
+            showWarningToast('Please select a collection first.');
             return;
         }
 
@@ -385,7 +624,8 @@
             createBtn.textContent = '+ New Collection';
             list.appendChild(createBtn);
         } catch (err) {
-            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading collections.</div>`;
+            handleNonCriticalError('loadCollections', err);
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading collections.<br>Check console for details.</div>`;
         }
     }
 
@@ -395,22 +635,37 @@
     }
 
     function deleteCollection(id) {
-        if (confirm('Are you sure you want to delete this collection?')) {
-            fetch(`${API_URL}/collections/${id}`, { method: 'DELETE' })
-                .then(res => {
-                    if (res.ok) {
-                        loadCollections();
-                        loadRequests(); // Refresh the requests list as well
-                    } else {
-                        alert('Error deleting collection');
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-        }
+        showConfirm(
+            'Are you sure you want to delete this collection? All requests in this collection will remain but will be unassigned.',
+            () => {
+                fetch(`${API_URL}/collections/${id}`, { method: 'DELETE' })
+                    .then(res => {
+                        if (res.ok) {
+                            loadCollections();
+                            loadRequests(); // Refresh the requests list as well
+                            logSuccess(`Collection ${id} deleted`);
+                        } else {
+                            logError('deleteCollection', `HTTP ${res.status}`);
+                            showErrorToast('Error deleting collection');
+                        }
+                    })
+                    .catch(err => {
+                        handleCriticalError('deleteCollection', err, 'Failed to delete collection');
+                    });
+            },
+            null,
+            'Delete Collection'
+        );
     }
 
-    function editCollection(id, currentName) {
-        const newName = prompt('Enter new collection name:', currentName);
+    async function editCollection(id, currentName) {
+        const newName = await showPrompt(
+            'Enter new collection name:',
+            currentName,
+            'Rename Collection',
+            'Collection name'
+        );
+
         if (newName && newName !== currentName) {
             fetch(`${API_URL}/collections/${id}`, {
                 method: 'PATCH',
@@ -420,11 +675,16 @@
             .then(res => {
                 if (res.ok) {
                     loadCollections();
+                    logSuccess(`Collection ${id} renamed to "${newName}"`);
+                    showSuccessToast('Collection renamed successfully');
                 } else {
-                    alert('Error updating collection');
+                    logError('editCollection', `HTTP ${res.status}`);
+                    showErrorToast('Error updating collection');
                 }
             })
-            .catch(err => alert('Error: ' + err.message));
+            .catch(err => {
+                handleCriticalError('editCollection', err, 'Failed to update collection');
+            });
         }
     }
 
@@ -432,7 +692,7 @@
         try {
             const res = await fetch(`${API_URL}/collections/${id}`);
             if (!res.ok) {
-                alert('Error loading collection');
+                showErrorToast('Error loading collection');
                 return;
             }
 
@@ -512,7 +772,7 @@
 
             toggleModal('viewCollectionModal', true);
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('viewCollectionDetails', err, 'Failed to load collection details');
         }
     }
 
@@ -580,7 +840,8 @@
                 list.appendChild(el);
             });
         } catch (err) {
-            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading runs history.</div>`;
+            handleNonCriticalError('loadRuns', err);
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading runs history.<br>Check console for details.</div>`;
         }
     }
 
@@ -599,7 +860,7 @@
         try {
             const res = await fetch(`${API_URL}/runs/${runId}`);
             if (!res.ok) {
-                alert('Error loading run details');
+                showErrorToast('Error loading run details');
                 return;
             }
 
@@ -684,37 +945,56 @@
 
             toggleModal('viewRunModal', true);
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('viewRunDetails', err, 'Failed to load run details');
         }
     }
 
     function deleteRequest(id) {
-        if (confirm('Are you sure you want to delete this request?')) {
-            fetch(`${API_URL}/requests/${id}`, { method: 'DELETE' })
-                .then(res => {
-                    if (res.ok) {
-                        loadRequests();
-                        if (currentRequestId === id) {
-                            // Clear selection if the deleted request was selected
-                            currentRequestId = null;
-                            document.getElementById('urlInput').value = '';
-                            document.getElementById('methodBadge').textContent = 'METHOD';
-                            document.getElementById('requestBodyDisplay').textContent = 'Select a request...';
-                            document.getElementById('requestHeadersDisplay').textContent = '';
-                            document.getElementById('responseArea').textContent = 'Select a request and click Run.';
-                            document.getElementById('statusBadge').classList.add('hidden');
-                            document.getElementById('editBtn').classList.add('hidden');
+        showConfirm(
+            'Are you sure you want to delete this request? This action cannot be undone.',
+            () => {
+                fetch(`${API_URL}/requests/${id}`, { method: 'DELETE' })
+                    .then(res => {
+                        if (res.ok) {
+                            loadRequests();
+                            if (currentRequestId === id) {
+                                // Clear selection if the deleted request was selected
+                                currentRequestId = null;
+                                currentRequest = null;
+                                document.getElementById('urlInput').value = '';
+                                document.getElementById('methodSelect').value = 'GET';
+                                queryParamsEditor.setValue('');
+                                bodyEditor.setValue('');
+                                headersEditor.setValue('');
+                                document.getElementById('responseArea').textContent = 'Select a request and click Run.';
+                                document.getElementById('statusBadge').classList.add('hidden');
+                                document.getElementById('saveChangesBtn').classList.add('hidden');
+                            }
+                            console.log(`✅ Request ${id} deleted successfully`);
+                            showSuccessToast('Request deleted successfully');
+                        } else {
+                            console.error(`❌ Error deleting request ${id}: HTTP ${res.status}`);
+                            showErrorToast('Error deleting request');
                         }
-                    } else {
-                        alert('Error deleting request');
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-        }
+                    })
+                    .catch(err => {
+                        console.error(`❌ Error deleting request ${id}:`, err);
+                        showErrorToast('Error: ' + err.message);
+                    });
+            },
+            null,
+            'Delete Request'
+        );
     }
 
-    function showCreateCollectionModal() {
-        const name = prompt('Enter collection name:');
+    async function showCreateCollectionModal() {
+        const name = await showPrompt(
+            'Enter collection name:',
+            '',
+            'Create Collection',
+            'My Collection'
+        );
+
         if (name) {
             createCollection(name);
         }
@@ -729,11 +1009,13 @@
             });
             if (res.ok) {
                 loadCollections();
+                logSuccess(`Collection "${name}" created`);
             } else {
-                alert('Error creating collection');
+                logError('createCollection', `HTTP ${res.status}`);
+                showErrorToast('Error creating collection');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('createCollection', err, 'Failed to create collection');
         }
     }
 
@@ -800,7 +1082,8 @@
                 list.appendChild(el);
             });
         } catch (err) {
-            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.</div>`;
+            handleNonCriticalError('loadEnvironments', err);
+            list.innerHTML = `<div class="text-red-500 p-2 text-sm">Error loading environments.<br>Check console for details.</div>`;
         }
     }
 
@@ -896,10 +1179,10 @@
                 hideCreateEnvironmentModal();
                 loadEnvironmentsForSelect();
             } else {
-                alert('Error updating environment');
+                showErrorToast('Error updating environment');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('updateEnvironment', err, 'Failed to update environment');
         }
     }
 
@@ -955,7 +1238,7 @@
         const value = document.getElementById('newVarValue').value;
 
         if (!key) {
-            alert('Please enter a variable name');
+            showWarningToast('Please enter a variable name');
             return;
         }
 
@@ -974,47 +1257,63 @@
                 loadEnvironments();
                 loadEnvironmentsForSelect();
             } else {
-                alert('Error adding variable');
+                showErrorToast('Error adding variable');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('addVariable', err, 'Failed to add variable');
         }
     }
 
     async function deleteVariable(escapedKey, actualKey) {
-        if (!confirm(`Delete variable "${actualKey}"?`)) return;
+        showConfirm(
+            `Delete variable "${actualKey}"? This action cannot be undone.`,
+            async () => {
+                try {
+                    const res = await fetch(`${API_URL}/environments/${currentManageEnvId}/variables/${encodeURIComponent(actualKey)}`, {
+                        method: 'DELETE'
+                    });
 
-        try {
-            const res = await fetch(`${API_URL}/environments/${currentManageEnvId}/variables/${encodeURIComponent(actualKey)}`, {
-                method: 'DELETE'
-            });
-
-            if (res.ok) {
-                const updatedEnv = await res.json();
-                displayManageVariables(updatedEnv.variables);
-                loadEnvironments();
-                loadEnvironmentsForSelect();
-            } else {
-                alert('Error deleting variable');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
+                    if (res.ok) {
+                        const updatedEnv = await res.json();
+                        displayManageVariables(updatedEnv.variables);
+                        loadEnvironments();
+                        loadEnvironmentsForSelect();
+                        showSuccessToast('Variable deleted successfully');
+                    } else {
+                        showErrorToast('Error deleting variable');
+                    }
+                } catch (err) {
+                    handleCriticalError('deleteVariable', err, 'Failed to delete variable');
+                }
+            },
+            null,
+            'Delete Variable'
+        );
     }
 
     function deleteEnvironment(id) {
-        if (confirm('Are you sure you want to delete this environment?')) {
-            fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
-                .then(res => {
-                    if (res.ok) {
-                        loadEnvironments();
-                        loadEnvironmentsForSelect();
-                    } else {
-                        alert('Error deleting environment');
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-        }
+        showConfirm(
+            'Are you sure you want to delete this environment? All variables will be lost.',
+            () => {
+                fetch(`${API_URL}/environments/${id}`, { method: 'DELETE' })
+                    .then(res => {
+                        if (res.ok) {
+                            loadEnvironments();
+                            loadEnvironmentsForSelect();
+                            logSuccess(`Environment ${id} deleted`);
+                            showSuccessToast('Environment deleted successfully');
+                        } else {
+                            logError('deleteEnvironment', `HTTP ${res.status}`);
+                            showErrorToast('Error deleting environment');
+                        }
+                    })
+                    .catch(err => {
+                        handleCriticalError('deleteEnvironment', err, 'Failed to delete environment');
+                    });
+            },
+            null,
+            'Delete Environment'
+        );
     }
 
     async function createEnvironment(e) {
@@ -1034,10 +1333,10 @@
                 hideCreateEnvironmentModal();
                 loadEnvironmentsForSelect();
             } else {
-                alert('Error creating environment');
+                showErrorToast('Error creating environment');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('createEnvironment', err, 'Failed to create environment');
         }
     }
 
@@ -1105,7 +1404,7 @@
         const jsonText = document.getElementById('importEnvironmentJson').value.trim();
 
         if (!jsonText) {
-            alert('Please paste environment JSON');
+            showWarningToast('Please paste environment JSON');
             return;
         }
 
@@ -1113,7 +1412,7 @@
         try {
             postmanEnv = JSON.parse(jsonText);
         } catch (e) {
-            alert('Invalid JSON format');
+            showErrorToast('Invalid JSON format');
             return;
         }
 
@@ -1129,12 +1428,12 @@
                 loadEnvironments();
                 loadEnvironmentsForSelect();
                 hideImportEnvironmentModal();
-                alert(`✅ Environment "${importedEnv.name}" imported successfully!`);
+                showSuccessToast(`Environment "${importedEnv.name}" imported successfully!`);
             } else {
-                alert('Error importing environment');
+                showErrorToast('Error importing environment');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('importEnvironment', err, 'Failed to import environment');
         }
     };
 
@@ -1145,7 +1444,7 @@
         const envId = document.getElementById('exportEnvironmentSelect').value;
 
         if (!envId) {
-            alert('Please select an environment');
+            showWarningToast('Please select an environment');
             return;
         }
 
@@ -1166,12 +1465,12 @@
                 window.URL.revokeObjectURL(url);
 
                 hideExportEnvironmentModal();
-                alert('✅ Environment exported successfully!');
+                showSuccessToast('Environment exported successfully!');
             } else {
-                alert('Error exporting environment');
+                showErrorToast('Error exporting environment');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('exportEnvironment', err, 'Failed to export environment');
         }
     };
 
@@ -1192,37 +1491,40 @@
         const customHours = document.getElementById('cleanupHoursInput').value;
 
         if (!customHours) {
-            alert('Please select or enter hours to keep');
+            showWarningToast('Please select or enter hours to keep');
             return;
         }
 
         const hours = parseFloat(customHours);
 
         if (isNaN(hours) || hours < 0) {
-            alert('Please enter a valid number of hours');
+            showWarningToast('Please enter a valid number of hours');
             return;
         }
 
-        if (!confirm(`Delete all history older than ${hours} hour(s)?\n\nThis action cannot be undone!`)) {
-            return;
-        }
+        showConfirm(
+            `Delete all history older than ${hours} hour(s)?\n\nThis action cannot be undone!`,
+            async () => {
+                try {
+                    const res = await fetch(`${API_URL}/runs/cleanup?hours=${hours}`, {
+                        method: 'DELETE'
+                    });
 
-        try {
-            const res = await fetch(`${API_URL}/runs/cleanup?hours=${hours}`, {
-                method: 'DELETE'
-            });
-
-            if (res.ok) {
-                const result = await res.json();
-                hideCleanupHistoryModal();
-                loadRuns();
-                alert(`✅ Cleanup complete!\n\nDeleted: ${result.deleted} run(s)\nKept: Last ${result.hoursKept} hour(s)`);
-            } else {
-                alert('Error cleaning history');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
+                    if (res.ok) {
+                        const result = await res.json();
+                        hideCleanupHistoryModal();
+                        loadRuns();
+                        showSuccessToast(`Cleanup complete! Deleted: ${result.deleted} run(s), Kept: Last ${result.hoursKept} hour(s)`);
+                    } else {
+                        showErrorToast('Error cleaning history');
+                    }
+                } catch (err) {
+                    handleCriticalError('cleanupHistory', err, 'Failed to clean history');
+                }
+            },
+            null,
+            'Clean History'
+        );
     };
 
     // Quick hours buttons
@@ -1323,7 +1625,7 @@
                 }
             }
         } catch (e) {
-            alert('Invalid JSON in query params, body or headers');
+            showErrorToast('Invalid JSON in query params, body or headers');
             return;
         }
 
@@ -1338,11 +1640,12 @@
                 loadRequests();
                 hideCreateRequestModal();
                 selectRequest(newRequest);
+                showSuccessToast(`Request "${name}" created successfully!`);
             } else {
-                alert('Error creating request');
+                showErrorToast('Error creating request');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('createRequest', err, 'Failed to create request');
         }
     }
 
@@ -1411,7 +1714,7 @@
                     await importCollectionData(jsonData);
                     hideImportCollectionModal();
                 } catch (err) {
-                    alert('Error parsing JSON file: ' + err.message);
+                    showErrorToast('Error parsing JSON file: ' + err.message);
                 }
             };
 
@@ -1423,10 +1726,10 @@
                 await importCollectionData(jsonData);
                 hideImportCollectionModal();
             } catch (err) {
-                alert('Error parsing JSON: ' + err.message);
+                showErrorToast('Error parsing JSON: ' + err.message);
             }
         } else {
-            alert('Please upload a file or enter JSON data.');
+            showWarningToast('Please upload a file or enter JSON data');
         }
     };
 
@@ -1439,13 +1742,13 @@
             });
             if (res.ok) {
                 const result = await res.json();
-                alert('Collection imported successfully!');
+                showSuccessToast('Collection imported successfully!');
                 loadCollections();
             } else {
-                alert('Error importing collection');
+                showErrorToast('Error importing collection');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('importCollection', err, 'Failed to import collection');
         }
     }
 
@@ -1457,7 +1760,7 @@
         const collectionId = select.value;
 
         if (!collectionId) {
-            alert('Please select a collection to export.');
+            showWarningToast('Please select a collection to export');
             return;
         }
 
@@ -1473,12 +1776,12 @@
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
-                alert('Collection exported successfully!');
+                showSuccessToast('Collection exported successfully!');
             } else {
-                alert('Error exporting collection');
+                showErrorToast('Error exporting collection');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('exportCollection', err, 'Failed to export collection');
         }
     }
 
@@ -1511,7 +1814,7 @@
                 }
             }
         } catch (e) {
-            alert('Invalid JSON in query params, body or headers');
+            showErrorToast('Invalid JSON in query params, body or headers');
             return;
         }
 
@@ -1529,12 +1832,12 @@
 
                 // Hide save button
                 document.getElementById('saveChangesBtn').classList.add('hidden');
-                alert('✅ Changes saved successfully!');
+                showSuccessToast('Changes saved successfully!');
             } else {
-                alert('Error saving changes');
+                showErrorToast('Error saving changes');
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            handleCriticalError('saveChanges', err, 'Failed to save changes');
         }
     }
 
@@ -1643,7 +1946,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const bodyEditor = CodeMirror.fromTextArea(document.getElementById('requestBodyEdit'), {
@@ -1654,7 +1957,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const headersEditor = CodeMirror.fromTextArea(document.getElementById('requestHeadersEdit'), {
@@ -1665,7 +1968,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     // Track changes in CodeMirror editors
@@ -1681,7 +1984,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const newRequestBodyEditor = CodeMirror.fromTextArea(document.getElementById('newRequestBody'), {
@@ -1692,7 +1995,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const newRequestHeadersEditor = CodeMirror.fromTextArea(document.getElementById('newRequestHeaders'), {
@@ -1703,7 +2006,7 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const importJsonEditor = CodeMirror.fromTextArea(document.getElementById('importJson'), {
@@ -1714,8 +2017,22 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
+    // Global error handlers
+    window.addEventListener('error', (event) => {
+        handleNonCriticalError('Global', event.error || event.message);
+        // Prevent default error popup
+        event.preventDefault();
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        handleNonCriticalError('Unhandled Promise Rejection', event.reason);
+        // Prevent default error popup
+        event.preventDefault();
+    });
+
+    logInfo('Application initialized successfully');
 
 

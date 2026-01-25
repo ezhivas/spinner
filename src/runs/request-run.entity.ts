@@ -13,12 +13,13 @@ export class RequestRunEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => RequestEntity, { eager: true })
+  @ManyToOne(() => RequestEntity, { eager: true, onDelete: 'CASCADE' })
   request: RequestEntity;
 
   @ManyToOne(() => EnvironmentEntity, {
     nullable: true,
     eager: true,
+    onDelete: 'SET NULL',
   })
   environment?: EnvironmentEntity;
 
