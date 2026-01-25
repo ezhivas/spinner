@@ -1,19 +1,33 @@
 import { Worker, Job } from 'bullmq';
 import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import { bullConnection } from '../queue/bullmq.module';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
+import { PostRequestScriptService } from '../requests/post-request-script.service';
 import { RequestRunEntity } from './request-run.entity';
 
 export function startRunsWorker(
   dataSource: DataSource,
   httpExecutor: HttpExecutorService,
   variableResolver: VariableResolverService,
+  postRequestScriptService: PostRequestScriptService,
 ) {
   const logger = new Logger('RunsWorker');
 
-  logger.log('Initializing runs worker');
+  // Check if running in Electron mode
+  const isElectron = process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
+
+  if (isElectron) {
+    logger.log('⏭️  Skipping runs worker (Electron mode - using synchronous execution)');
+    return;
+  }
+
+  logger.log('Initializing runs worker (Docker mode)');
+
+  const bullConnection = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+  };
 
   const worker = new Worker(
     'runs',
@@ -48,6 +62,21 @@ export function startRunsWorker(
         };
 
         const result = await httpExecutor.execute(config);
+
+        // Execute post-request script if exists
+        if (run.request.postRequestScript) {
+          const scriptResult = await postRequestScriptService.executeScript(
+            run.request.postRequestScript,
+            result.responseStatus || 0,
+            result.responseHeaders || {},
+            result.responseBody,
+            run.environment,
+          );
+
+          if (!scriptResult.success) {
+            logger.error(`Post-request script failed for run ${run.id}: ${scriptResult.error}`);
+          }
+        }
 
         run.status = result.status;
         run.responseStatus = result.responseStatus;

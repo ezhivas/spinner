@@ -6,6 +6,8 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { CollectionEntity } from '../collections/collection.entity';
+import { JsonColumn } from '../common/decorators/json-column.decorator';
+import { EnumColumn } from '../common/decorators/enum-column.decorator';
 
 export enum HttpMethod {
   GET = 'GET',
@@ -23,23 +25,23 @@ export class RequestEntity {
   @Column()
   name: string;
 
-  @Column({
-    type: 'enum',
-    enum: HttpMethod,
-  })
+  @EnumColumn({ enum: HttpMethod })
   method: HttpMethod;
 
   @Column()
   url: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   headers: Record<string, string>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   queryParams: Record<string, string>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   body: any;
+
+  @Column({ type: 'varchar', nullable: true, default: 'json' })
+  bodyType?: string;
 
   @Column({ nullable: true })
   collectionId?: number;
@@ -49,6 +51,9 @@ export class RequestEntity {
     onDelete: 'CASCADE',
   })
   collection?: CollectionEntity | null;
+
+  @Column({ type: 'text', nullable: true })
+  postRequestScript?: string;
 
   @CreateDateColumn()
   createdAt: Date;

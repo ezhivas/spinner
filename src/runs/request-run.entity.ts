@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { RequestEntity } from '../requests/request.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
+import { JsonColumn } from '../common/decorators/json-column.decorator';
 
 @Entity('request_runs')
 export class RequestRunEntity {
@@ -29,10 +30,10 @@ export class RequestRunEntity {
   @Column({ nullable: true })
   responseStatus?: number;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   responseHeaders?: any;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @JsonColumn({ nullable: true })
   responseBody?: any;
 
   @Column({ nullable: true })

@@ -1,8 +1,25 @@
-    const API_URL = 'http://localhost:3000';
+    // Detect Electron mode and set API URL
+    const IS_ELECTRON = !!(window.electron && window.electron.isElectron);
+    let API_URL = 'http://localhost:3000';
+
     let currentRequestId = null;
     let currentRequest = null; // Store full request data
     let isEditMode = false;
     let currentCollectionId = null;
+
+    // Set mode indicator on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (modeIndicator) {
+            if (IS_ELECTRON) {
+                modeIndicator.textContent = '💻 Desktop';
+                modeIndicator.className = 'text-xs px-2 py-1 rounded bg-blue-900 text-blue-300';
+            } else {
+                modeIndicator.textContent = '🌐 Web';
+                modeIndicator.className = 'text-xs px-2 py-1 rounded bg-purple-900 text-purple-300';
+            }
+        }
+    });
 
     // Toast notification system
     function showToast(message, type = 'info', duration = 4000) {
@@ -297,6 +314,14 @@
             }
 
             const requests = await res.json();
+
+            // Validate that response is an array
+            if (!Array.isArray(requests)) {
+                console.error('Expected array of requests but got:', requests);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format from server</div>';
+                return;
+            }
+
             logSuccess('Requests loaded', { count: requests.length });
 
             list.innerHTML = '';
@@ -360,39 +385,25 @@
         document.getElementById('methodSelect').value = req.method;
         document.getElementById('urlInput').value = req.url;
 
-        // Detect body type
-        // Form-data: flat object with all values being primitives (strings, numbers, booleans)
-        // JSON: anything else (nested objects, arrays, etc.)
-        let bodyType = 'json';
-        if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
-            // Check if it's a flat object with only primitive values
-            const values = Object.values(req.body);
-            const allPrimitive = values.every(val =>
-                val === null ||
-                typeof val === 'string' ||
-                typeof val === 'number' ||
-                typeof val === 'boolean'
-            );
-
-            // If all values are primitive and no nested objects/arrays, it's likely form-data
-            if (allPrimitive && values.length > 0) {
-                bodyType = 'form-data';
-            }
-        }
-
+        // Use saved bodyType or default to 'json'
+        const bodyType = req.bodyType || 'json';
         document.getElementById('requestBodyTypeEdit').value = bodyType;
 
         // Populate editors with formatted JSON
         queryParamsEditor.setValue(formatJSON(req.queryParams));
         bodyEditor.setValue(formatJSON(req.body));
         headersEditor.setValue(formatJSON(req.headers));
+        postRequestScriptEditor.setValue(req.postRequestScript || '');
 
         // Handle form-data if needed
         if (bodyType === 'form-data') {
             document.getElementById('requestBodyEdit').classList.add('hidden');
             document.getElementById('requestFormDataEdit').classList.remove('hidden');
             loadFormDataFields('requestFormDataFields', req.body || {});
-            setTimeout(() => headersEditor.refresh(), 10);
+            setTimeout(() => {
+                headersEditor.refresh();
+                postRequestScriptEditor.refresh();
+            }, 10);
         } else {
             document.getElementById('requestBodyEdit').classList.remove('hidden');
             document.getElementById('requestFormDataEdit').classList.add('hidden');
@@ -400,6 +411,7 @@
                 queryParamsEditor.refresh();
                 bodyEditor.refresh();
                 headersEditor.refresh();
+                postRequestScriptEditor.refresh();
             }, 10);
         }
 
@@ -594,7 +606,20 @@
 
         try {
             const res = await fetch(`${API_URL}/collections`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load collections: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load collections</div>';
+                return;
+            }
+
             const collections = await res.json();
+
+            if (!Array.isArray(collections)) {
+                console.error('Expected array of collections but got:', collections);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             collections.forEach(col => {
@@ -809,7 +834,20 @@
 
         try {
             const res = await fetch(`${API_URL}/runs`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load runs: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load runs</div>';
+                return;
+            }
+
             const runs = await res.json();
+
+            if (!Array.isArray(runs)) {
+                console.error('Expected array of runs but got:', runs);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             if (runs.length === 0) {
@@ -1080,7 +1118,20 @@
 
         try {
             const res = await fetch(`${API_URL}/environments`);
+
+            if (!res.ok) {
+                console.warn(`Failed to load environments: ${res.status} ${res.statusText}`);
+                list.innerHTML = '<div class="text-yellow-500 p-2 text-sm">Failed to load environments</div>';
+                return;
+            }
+
             const environments = await res.json();
+
+            if (!Array.isArray(environments)) {
+                console.error('Expected array of environments but got:', environments);
+                list.innerHTML = '<div class="text-red-500 p-2 text-sm">Invalid response format</div>';
+                return;
+            }
 
             list.innerHTML = '';
             environments.forEach(env => {
@@ -1398,7 +1449,24 @@
     async function loadEnvironmentsForSelect() {
         try {
             const res = await fetch(`${API_URL}/environments`);
+
+            // Check if response is OK
+            if (!res.ok) {
+                console.warn(`Failed to load environments: ${res.status} ${res.statusText}`);
+                const select = document.getElementById('environmentSelect');
+                select.innerHTML = '<option value="">No Environment (error loading)</option>';
+                return;
+            }
+
             const environments = await res.json();
+
+            // Validate that response is an array
+            if (!Array.isArray(environments)) {
+                console.error('Expected array of environments but got:', environments);
+                const select = document.getElementById('environmentSelect');
+                select.innerHTML = '<option value="">No Environment (invalid data)</option>';
+                return;
+            }
 
             const select = document.getElementById('environmentSelect');
             select.innerHTML = '<option value="">No Environment</option>';
@@ -1410,6 +1478,10 @@
             });
         } catch (err) {
             console.error('Error loading environments for select:', err);
+            const select = document.getElementById('environmentSelect');
+            if (select) {
+                select.innerHTML = '<option value="">No Environment (connection error)</option>';
+            }
         }
     }
 
@@ -1601,8 +1673,24 @@
     async function exportBackup() {
         try {
             const res = await fetch(`${API_URL}/backup/export`);
-            if (res.ok) {
-                const blob = await res.blob();
+            if (!res.ok) {
+                showErrorToast('Error exporting backup');
+                return;
+            }
+
+            const data = await res.json();
+
+            if (IS_ELECTRON && window.electron?.exportBackup) {
+                // Use Electron native file dialog
+                const result = await window.electron.exportBackup(data);
+                if (result.success) {
+                    showSuccessToast(`Backup exported to ${result.path}!`);
+                } else {
+                    showWarningToast('Export cancelled');
+                }
+            } else {
+                // Fallback for browser
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
@@ -1612,19 +1700,32 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 showSuccessToast('Backup exported successfully!');
-            } else {
-                showErrorToast('Error exporting backup');
             }
         } catch (err) {
             handleCriticalError('exportBackup', err, 'Failed to export backup');
         }
     }
 
-    function showBackupImportModal() {
-        toggleModal('backupImportModal', true);
-        document.getElementById('backupFileInput').value = '';
-        document.getElementById('backupJsonInput').value = '';
-        document.getElementById('backupImportResult').classList.add('hidden');
+    async function showBackupImportModal() {
+        if (IS_ELECTRON && window.electron?.importBackup) {
+            // Use Electron native file dialog
+            try {
+                const result = await window.electron.importBackup();
+                if (result.success) {
+                    await importBackupData(result.data);
+                } else {
+                    showWarningToast('Import cancelled');
+                }
+            } catch (err) {
+                handleCriticalError('showBackupImportModal', err, 'Failed to import backup');
+            }
+        } else {
+            // Show modal for browser
+            toggleModal('backupImportModal', true);
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('backupJsonInput').value = '';
+            document.getElementById('backupImportResult').classList.add('hidden');
+        }
     }
 
     function hideBackupImportModal() {
@@ -1776,6 +1877,7 @@
         const bodyType = document.getElementById('newRequestBodyType').value;
         const queryParamsText = newRequestQueryParamsEditor.getValue().trim();
         const headersText = newRequestHeadersEditor.getValue().trim();
+        const postRequestScript = newRequestPostScriptEditor.getValue().trim();
         const collectionId = document.getElementById('newRequestCollection').value;
 
         let queryParams = null;
@@ -1805,7 +1907,17 @@
             const res = await fetch(`${API_URL}/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, method, url, queryParams, body, headers, collectionId })
+                body: JSON.stringify({
+                    name,
+                    method,
+                    url,
+                    queryParams,
+                    body,
+                    bodyType,
+                    headers,
+                    postRequestScript: postRequestScript || null,
+                    collectionId
+                })
             });
             if (res.ok) {
                 const newRequest = await res.json();
@@ -1994,7 +2106,15 @@
             const res = await fetch(`${API_URL}/requests/${currentRequestId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ method, url, queryParams, body, headers })
+                body: JSON.stringify({
+                    method,
+                    url,
+                    queryParams,
+                    body,
+                    bodyType,
+                    headers,
+                    postRequestScript: postRequestScriptEditor.getValue().trim() || null
+                })
             });
 
             if (res.ok) {
@@ -2195,6 +2315,33 @@
         viewportMargin: 10
     });
     newRequestHeadersEditor.getWrapperElement().style.width = '100%';
+
+    // Post-request script editors
+    const postRequestScriptEditor = CodeMirror.fromTextArea(document.getElementById('postRequestScriptEdit'), {
+        mode: 'javascript',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: 10
+    });
+    postRequestScriptEditor.getWrapperElement().style.width = '100%';
+    postRequestScriptEditor.getScrollerElement().style.maxWidth = '100%';
+    postRequestScriptEditor.on('change', markAsChanged);
+
+    const newRequestPostScriptEditor = CodeMirror.fromTextArea(document.getElementById('newRequestPostScript'), {
+        mode: 'javascript',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        lint: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
+        viewportMargin: 10
+    });
+    newRequestPostScriptEditor.getWrapperElement().style.width = '100%';
 
     const importJsonEditor = CodeMirror.fromTextArea(document.getElementById('importJson'), {
         mode: 'application/json',

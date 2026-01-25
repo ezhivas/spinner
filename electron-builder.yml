@@ -1,0 +1,80 @@
+appId: com.spinner.api-client
+productName: SpinneR
+copyright: Copyright © 2026
+
+# Directories
+directories:
+  buildResources: build
+  output: release
+
+# Files to include
+files:
+  - dist/**/*
+  - public/**/*
+  - electron/**/*
+  - node_modules/**/*
+  - package.json
+  - "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!node_modules/*.d.ts"
+  - "!node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+
+# Disable asar to make debugging easier
+asar: false
+
+# Extra resources
+extraResources:
+  - data/
+
+# macOS specific
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.developer-tools
+  # icon: build/icon.icns  # Commented out until icon is created
+  hardenedRuntime: false  # Set to true when you have Apple Developer ID
+  gatekeeperAssess: false
+
+# DMG configuration
+dmg:
+  title: ${productName} ${version}
+  # icon: build/icon.icns  # Commented out until icon is created
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+
+# Compression
+compression: normal
+
+# File associations
+fileAssociations:
+  - ext: json
+    name: SpinneR Collection
+    role: Editor
+
+# Protocols
+protocols:
+  - name: SpinneR Protocol
+    schemes:
+      - spinner
