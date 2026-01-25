@@ -1,6 +1,6 @@
 # SpinneR API Client - Electron Desktop App
 
-## ✅ Stage 1 & 2 Complete!
+## ✅ Stages 1-5 Complete!
 
 The following has been implemented:
 
@@ -24,6 +24,25 @@ The following has been implemented:
 - [x] Updated `package.json` with Electron scripts
 - [x] Created `electron-builder.yml` for packaging
 - [x] Created `.env.electron` for configuration
+
+### Stage 3: Database Migration ✅
+- [x] Created `src/config/database.config.ts` - multi-database support
+- [x] Updated `app.module.ts` - dynamic database configuration  
+- [x] Updated `main.ts` - Electron mode detection & static files
+- [x] Created `EnumColumn` decorator - SQLite enum compatibility
+- [x] Tested SQLite database creation - all tables working
+
+### Stage 4: Backend Adaptation ✅
+- [x] Updated `bullmq.module.ts` - in-memory queue for Electron
+- [x] Modified `runs.service.ts` - synchronous execution
+- [x] Updated `runs.worker.ts` - skip worker in Electron mode
+- [x] No Redis dependency in Electron mode
+
+### Stage 5: Frontend Integration ✅
+- [x] Added Electron mode detection in `app.js`
+- [x] Dynamic API URL based on backend port
+- [x] Mode indicator in UI (💻 Desktop / 🌐 Web)
+- [x] Native file dialogs for backup/restore
 
 ## 🚀 Quick Start
 
@@ -121,15 +140,18 @@ npm run electron:dev
 
 1. **App Icons**: Not yet created (need icon.icns for macOS)
 2. **Code Signing**: Not configured (needed for distribution)
-3. **SQLite Database**: Not yet integrated with TypeORM config
-4. **Redis Queue**: Still using Redis (needs in-memory adapter)
+3. **Redis Queue**: Still requires Redis connection (Stage 4 will add in-memory queue)
+4. **Frontend API URL**: Hardcoded to localhost:3000 (Stage 5 will make dynamic)
 
 ## 📝 Notes
 
 - All JSON fields now use `JsonColumn` decorator
+- All enum fields now use `EnumColumn` decorator  
 - Native modules are rebuilt automatically on `npm install`
 - Port conflicts are handled automatically
-- Database will be stored in: `~/Library/Application Support/api-client-backend/spinner.db`
+- Database files stored in:
+  - Development: `./data/spinner.db`
+  - Electron: `~/Library/Application Support/api-client-backend/spinner.db`
 
 ## 🐛 Troubleshooting
 
@@ -146,4 +168,4 @@ Check the Electron console for errors. Ensure `npm run build` completed successf
 
 ---
 
-**Status**: Stages 1 & 2 complete! Ready for Stage 3 (Database Migration).
+**Status**: Stages 1, 2 & 3 complete! Ready for Stage 4 (Backend Adaptation - Redis/Queue).

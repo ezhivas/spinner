@@ -1,7 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
-import { bullConnection } from '../queue/bullmq.module';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
 import { RequestRunEntity } from './request-run.entity';
@@ -13,7 +12,20 @@ export function startRunsWorker(
 ) {
   const logger = new Logger('RunsWorker');
 
-  logger.log('Initializing runs worker');
+  // Check if running in Electron mode
+  const isElectron = process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
+
+  if (isElectron) {
+    logger.log('⏭️  Skipping runs worker (Electron mode - using synchronous execution)');
+    return;
+  }
+
+  logger.log('Initializing runs worker (Docker mode)');
+
+  const bullConnection = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+  };
 
   const worker = new Worker(
     'runs',

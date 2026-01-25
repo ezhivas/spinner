@@ -1,8 +1,27 @@
-    const API_URL = 'http://localhost:3000';
+    // Detect Electron mode and set API URL
+    const IS_ELECTRON = !!(window.electron && window.electron.isElectron);
+    const API_URL = IS_ELECTRON
+        ? `http://localhost:${window.electron?.getBackendPort?.() || 3000}`
+        : 'http://localhost:3000';
+
     let currentRequestId = null;
     let currentRequest = null; // Store full request data
     let isEditMode = false;
     let currentCollectionId = null;
+
+    // Set mode indicator on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (modeIndicator) {
+            if (IS_ELECTRON) {
+                modeIndicator.textContent = '💻 Desktop';
+                modeIndicator.className = 'text-xs px-2 py-1 rounded bg-blue-900 text-blue-300';
+            } else {
+                modeIndicator.textContent = '🌐 Web';
+                modeIndicator.className = 'text-xs px-2 py-1 rounded bg-purple-900 text-purple-300';
+            }
+        }
+    });
 
     // Toast notification system
     function showToast(message, type = 'info', duration = 4000) {
@@ -1601,8 +1620,24 @@
     async function exportBackup() {
         try {
             const res = await fetch(`${API_URL}/backup/export`);
-            if (res.ok) {
-                const blob = await res.blob();
+            if (!res.ok) {
+                showErrorToast('Error exporting backup');
+                return;
+            }
+
+            const data = await res.json();
+
+            if (IS_ELECTRON && window.electron?.exportBackup) {
+                // Use Electron native file dialog
+                const result = await window.electron.exportBackup(data);
+                if (result.success) {
+                    showSuccessToast(`Backup exported to ${result.path}!`);
+                } else {
+                    showWarningToast('Export cancelled');
+                }
+            } else {
+                // Fallback for browser
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
@@ -1612,19 +1647,32 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 showSuccessToast('Backup exported successfully!');
-            } else {
-                showErrorToast('Error exporting backup');
             }
         } catch (err) {
             handleCriticalError('exportBackup', err, 'Failed to export backup');
         }
     }
 
-    function showBackupImportModal() {
-        toggleModal('backupImportModal', true);
-        document.getElementById('backupFileInput').value = '';
-        document.getElementById('backupJsonInput').value = '';
-        document.getElementById('backupImportResult').classList.add('hidden');
+    async function showBackupImportModal() {
+        if (IS_ELECTRON && window.electron?.importBackup) {
+            // Use Electron native file dialog
+            try {
+                const result = await window.electron.importBackup();
+                if (result.success) {
+                    await importBackupData(result.data);
+                } else {
+                    showWarningToast('Import cancelled');
+                }
+            } catch (err) {
+                handleCriticalError('showBackupImportModal', err, 'Failed to import backup');
+            }
+        } else {
+            // Show modal for browser
+            toggleModal('backupImportModal', true);
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('backupJsonInput').value = '';
+            document.getElementById('backupImportResult').classList.add('hidden');
+        }
     }
 
     function hideBackupImportModal() {
