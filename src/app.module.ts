@@ -9,6 +9,7 @@ import { RunsModule } from './runs/runs.module';
 import { HttpExecutorModule } from './http-executor/http-executor.module';
 import { BullmqModule } from './queue/bullmq.module';
 import { CollectionsModule } from './collections/collections.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CollectionsModule } from './collections/collections.module';
     HttpExecutorModule,
     BullmqModule,
     CollectionsModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [AppService],

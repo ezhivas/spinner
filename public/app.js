@@ -481,7 +481,33 @@
             statusBadge.className = 'text-xs px-2 py-1 rounded bg-green-900 text-green-200 border border-green-700';
             statusValue.textContent = `${run.responseStatus} OK`;
             area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-green-300 overflow-auto whitespace-pre-wrap';
-            area.textContent = JSON.stringify(run.responseBody, null, 2);
+
+            // Format and limit response display
+            let responseText = '';
+            const MAX_DISPLAY_SIZE = 50000; // 50KB limit for display
+
+            try {
+                if (typeof run.responseBody === 'string') {
+                    // If it's a string (HTML, XML, plain text)
+                    responseText = run.responseBody;
+                } else if (run.responseBody && typeof run.responseBody === 'object') {
+                    // If it's JSON object
+                    responseText = JSON.stringify(run.responseBody, null, 2);
+                } else {
+                    responseText = String(run.responseBody);
+                }
+
+                // Check size and truncate if needed
+                if (responseText.length > MAX_DISPLAY_SIZE) {
+                    const truncated = responseText.substring(0, MAX_DISPLAY_SIZE);
+                    const sizeKB = (responseText.length / 1024).toFixed(1);
+                    area.textContent = `⚠️ Response too large (${sizeKB}KB). Showing first 50KB...\n\n${truncated}\n\n... truncated ...`;
+                } else {
+                    area.textContent = responseText;
+                }
+            } catch (err) {
+                area.textContent = 'Error displaying response: ' + err.message;
+            }
         } else {
             statusBadge.className = 'text-xs px-2 py-1 rounded bg-red-900 text-red-200 border border-red-700';
             statusValue.textContent = 'ERROR';
@@ -491,6 +517,7 @@
 
         timerValue.textContent = `${run.durationMs}ms`;
     }
+
 
     // Хелперы для цветов
     function getMethodColor(m) {
@@ -925,9 +952,36 @@
                 document.getElementById('runDetailErrorSection').classList.add('hidden');
 
                 document.getElementById('runDetailResponseStatus').textContent = run.responseStatus || '-';
-                document.getElementById('runDetailResponseBody').textContent = run.responseBody
-                    ? JSON.stringify(run.responseBody, null, 2)
-                    : 'No response body';
+
+                // Format response body with size limit
+                const responseBodyEl = document.getElementById('runDetailResponseBody');
+                const MAX_DISPLAY_SIZE = 50000; // 50KB limit
+
+                if (run.responseBody) {
+                    let responseText = '';
+                    try {
+                        if (typeof run.responseBody === 'string') {
+                            responseText = run.responseBody;
+                        } else if (typeof run.responseBody === 'object') {
+                            responseText = JSON.stringify(run.responseBody, null, 2);
+                        } else {
+                            responseText = String(run.responseBody);
+                        }
+
+                        // Check size and truncate if needed
+                        if (responseText.length > MAX_DISPLAY_SIZE) {
+                            const truncated = responseText.substring(0, MAX_DISPLAY_SIZE);
+                            const sizeKB = (responseText.length / 1024).toFixed(1);
+                            responseBodyEl.textContent = `⚠️ Response too large (${sizeKB}KB). Showing first 50KB...\n\n${truncated}\n\n... truncated ...`;
+                        } else {
+                            responseBodyEl.textContent = responseText;
+                        }
+                    } catch (err) {
+                        responseBodyEl.textContent = 'Error formatting response: ' + err.message;
+                    }
+                } else {
+                    responseBodyEl.textContent = 'No response body';
+                }
             } else if (run.status === 'ERROR') {
                 document.getElementById('runDetailResponseSection').classList.add('hidden');
                 document.getElementById('runDetailErrorSection').classList.remove('hidden');
@@ -1543,6 +1597,124 @@
         });
     });
 
+    // Backup/Restore functions
+    async function exportBackup() {
+        try {
+            const res = await fetch(`${API_URL}/backup/export`);
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `spinner-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showSuccessToast('Backup exported successfully!');
+            } else {
+                showErrorToast('Error exporting backup');
+            }
+        } catch (err) {
+            handleCriticalError('exportBackup', err, 'Failed to export backup');
+        }
+    }
+
+    function showBackupImportModal() {
+        toggleModal('backupImportModal', true);
+        document.getElementById('backupFileInput').value = '';
+        document.getElementById('backupJsonInput').value = '';
+        document.getElementById('backupImportResult').classList.add('hidden');
+    }
+
+    function hideBackupImportModal() {
+        toggleModal('backupImportModal', false);
+    }
+
+    // Backup import form handler
+    document.getElementById('backupImportForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('backupFileInput');
+        const jsonInput = document.getElementById('backupJsonInput');
+        let backupData;
+
+        if (fileInput.files.length > 0) {
+            // Read from file
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (event) => {
+                try {
+                    const content = event.target.result;
+                    backupData = JSON.parse(content);
+                    await importBackupData(backupData);
+                } catch (err) {
+                    showErrorToast('Error parsing backup file: ' + err.message);
+                }
+            };
+
+            reader.readAsText(file);
+        } else if (jsonInput.value.trim() !== '') {
+            // Read from textarea
+            try {
+                backupData = JSON.parse(jsonInput.value);
+                await importBackupData(backupData);
+            } catch (err) {
+                showErrorToast('Error parsing JSON: ' + err.message);
+            }
+        } else {
+            showWarningToast('Please upload a file or paste JSON');
+        }
+    };
+
+    async function importBackupData(data) {
+        try {
+            const res = await fetch(`${API_URL}/backup/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+
+                // Show results
+                document.getElementById('backupImportResult').classList.remove('hidden');
+                document.getElementById('importedCollections').textContent = result.imported.collections;
+                document.getElementById('importedRequests').textContent = result.imported.requests;
+                document.getElementById('importedEnvironments').textContent = result.imported.environments;
+                document.getElementById('importedRuns').textContent = result.imported.runs;
+
+                // Show errors if any
+                if (result.errors && result.errors.length > 0) {
+                    document.getElementById('importErrors').classList.remove('hidden');
+                    const errorsList = document.getElementById('importErrorsList');
+                    errorsList.innerHTML = '';
+                    result.errors.forEach(error => {
+                        const li = document.createElement('li');
+                        li.textContent = error;
+                        errorsList.appendChild(li);
+                    });
+                } else {
+                    document.getElementById('importErrors').classList.add('hidden');
+                }
+
+                // Reload data
+                loadRequests();
+                loadCollections();
+                loadEnvironments();
+                loadEnvironmentsForSelect();
+
+                showSuccessToast(`Backup restored! ${result.imported.collections} collections, ${result.imported.requests} requests, ${result.imported.environments} environments, ${result.imported.runs} runs`);
+            } else {
+                showErrorToast('Error importing backup');
+            }
+        } catch (err) {
+            handleCriticalError('importBackup', err, 'Failed to import backup');
+        }
+    }
+
     // Инит
     loadRequests();
     loadEnvironmentsForSelect();
@@ -1895,6 +2067,9 @@
     document.getElementById('cancelExportEnvironment').addEventListener('click', hideExportEnvironmentModal);
     document.getElementById('cleanupHistoryBtn').addEventListener('click', showCleanupHistoryModal);
     document.getElementById('cancelCleanupHistory').addEventListener('click', hideCleanupHistoryModal);
+    document.getElementById('backupExportBtn').addEventListener('click', exportBackup);
+    document.getElementById('backupImportBtn').addEventListener('click', showBackupImportModal);
+    document.getElementById('cancelBackupImport').addEventListener('click', hideBackupImportModal);
 
     // Track changes to show save button
     document.getElementById('methodSelect').addEventListener('change', markAsChanged);
@@ -1946,8 +2121,11 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    // Force width constraint
+    queryParamsEditor.getWrapperElement().style.width = '100%';
+    queryParamsEditor.getScrollerElement().style.maxWidth = '100%';
 
     const bodyEditor = CodeMirror.fromTextArea(document.getElementById('requestBodyEdit'), {
         mode: 'application/json',
@@ -1957,8 +2135,11 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    // Force width constraint
+    bodyEditor.getWrapperElement().style.width = '100%';
+    bodyEditor.getScrollerElement().style.maxWidth = '100%';
 
     const headersEditor = CodeMirror.fromTextArea(document.getElementById('requestHeadersEdit'), {
         mode: 'application/json',
@@ -1968,8 +2149,11 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    // Force width constraint
+    headersEditor.getWrapperElement().style.width = '100%';
+    headersEditor.getScrollerElement().style.maxWidth = '100%';
 
     // Track changes in CodeMirror editors
     queryParamsEditor.on('change', markAsChanged);
@@ -1984,8 +2168,9 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    newRequestQueryParamsEditor.getWrapperElement().style.width = '100%';
 
     const newRequestBodyEditor = CodeMirror.fromTextArea(document.getElementById('newRequestBody'), {
         mode: 'application/json',
@@ -1995,8 +2180,9 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    newRequestBodyEditor.getWrapperElement().style.width = '100%';
 
     const newRequestHeadersEditor = CodeMirror.fromTextArea(document.getElementById('newRequestHeaders'), {
         mode: 'application/json',
@@ -2006,8 +2192,9 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    newRequestHeadersEditor.getWrapperElement().style.width = '100%';
 
     const importJsonEditor = CodeMirror.fromTextArea(document.getElementById('importJson'), {
         mode: 'application/json',
@@ -2017,8 +2204,9 @@
         matchBrackets: true,
         lint: true,
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
-        lineWrapping: true
+        viewportMargin: 10
     });
+    importJsonEditor.getWrapperElement().style.width = '100%';
 
     // Global error handlers
     window.addEventListener('error', (event) => {
