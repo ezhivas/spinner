@@ -14,7 +14,7 @@ export class RequestRunEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => RequestEntity, { eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => RequestEntity, { onDelete: 'CASCADE' })
   request: RequestEntity;
 
   @ManyToOne(() => EnvironmentEntity, {

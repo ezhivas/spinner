@@ -135,7 +135,11 @@ export class RunsService {
   }
 
   async findAll() {
-    return this.runRepo.find();
+    return this.runRepo.find({
+        relations: ['request', 'environment'],
+        order: { createdAt: 'DESC' },
+        take: 100,
+    });
   }
 
   async findOne(id: number) {
