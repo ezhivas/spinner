@@ -277,6 +277,7 @@
         document.getElementById('requestsList').classList.remove('hidden');
         document.getElementById('collectionsList').classList.add('hidden');
         document.getElementById('runsList').classList.add('hidden');
+        document.getElementById('runsFooter').classList.add('hidden');
         loadRequests(); // Reload to show all
     }
 
@@ -293,6 +294,7 @@
         document.getElementById('requestsList').classList.remove('hidden');
         document.getElementById('collectionsList').classList.add('hidden');
         document.getElementById('runsList').classList.add('hidden');
+        document.getElementById('runsFooter').classList.add('hidden');
         loadRequests(currentCollectionId); // Load filtered requests
     }
 
@@ -304,6 +306,7 @@
         document.getElementById('requestsList').classList.add('hidden');
         document.getElementById('collectionsList').classList.remove('hidden');
         document.getElementById('runsList').classList.add('hidden');
+        document.getElementById('runsFooter').classList.add('hidden');
         loadCollections();
     }
 
@@ -315,6 +318,7 @@
         document.getElementById('requestsList').classList.add('hidden');
         document.getElementById('collectionsList').classList.add('hidden');
         document.getElementById('runsList').classList.remove('hidden');
+        document.getElementById('runsFooter').classList.remove('hidden');
         loadRuns();
     }
 
@@ -1171,6 +1175,72 @@
         }
     };
 
+    // Cleanup History functions
+    function showCleanupHistoryModal() {
+        toggleModal('cleanupHistoryModal', true);
+        document.getElementById('cleanupHoursInput').value = '';
+    }
+
+    function hideCleanupHistoryModal() {
+        toggleModal('cleanupHistoryModal', false);
+    }
+
+    // Cleanup history form handler
+    document.getElementById('cleanupHistoryForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const customHours = document.getElementById('cleanupHoursInput').value;
+
+        if (!customHours) {
+            alert('Please select or enter hours to keep');
+            return;
+        }
+
+        const hours = parseFloat(customHours);
+
+        if (isNaN(hours) || hours < 0) {
+            alert('Please enter a valid number of hours');
+            return;
+        }
+
+        if (!confirm(`Delete all history older than ${hours} hour(s)?\n\nThis action cannot be undone!`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/runs/cleanup?hours=${hours}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                hideCleanupHistoryModal();
+                loadRuns();
+                alert(`✅ Cleanup complete!\n\nDeleted: ${result.deleted} run(s)\nKept: Last ${result.hoursKept} hour(s)`);
+            } else {
+                alert('Error cleaning history');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    };
+
+    // Quick hours buttons
+    document.querySelectorAll('.cleanup-hours-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const hours = btn.getAttribute('data-hours');
+            document.getElementById('cleanupHoursInput').value = hours;
+
+            // Visual feedback
+            document.querySelectorAll('.cleanup-hours-btn').forEach(b => {
+                b.classList.remove('bg-blue-600', 'border-2', 'border-blue-400');
+                b.classList.add('bg-gray-700');
+            });
+            btn.classList.remove('bg-gray-700');
+            btn.classList.add('bg-blue-600', 'border-2', 'border-blue-400');
+        });
+    });
+
     // Инит
     loadRequests();
     loadEnvironmentsForSelect();
@@ -1520,6 +1590,8 @@
     document.getElementById('exportEnvironmentBtn').addEventListener('click', showExportEnvironmentModal);
     document.getElementById('cancelImportEnvironment').addEventListener('click', hideImportEnvironmentModal);
     document.getElementById('cancelExportEnvironment').addEventListener('click', hideExportEnvironmentModal);
+    document.getElementById('cleanupHistoryBtn').addEventListener('click', showCleanupHistoryModal);
+    document.getElementById('cancelCleanupHistory').addEventListener('click', hideCleanupHistoryModal);
 
     // Track changes to show save button
     document.getElementById('methodSelect').addEventListener('change', markAsChanged);
@@ -1644,4 +1716,6 @@
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-lint-markers'],
         viewportMargin: Infinity
     });
+
+
 

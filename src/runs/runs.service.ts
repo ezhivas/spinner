@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RequestRunEntity } from './request-run.entity';
 import { RequestEntity } from '../requests/request.entity';
@@ -58,4 +58,20 @@ export class RunsService {
       relations: ['request', 'environment'],
     });
   }
+
+  async deleteOlderThan(hours: number) {
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - hours);
+
+    const result = await this.runRepo.delete({
+      createdAt: LessThan(cutoffDate),
+    });
+
+    return {
+      deleted: result.affected || 0,
+      cutoffDate: cutoffDate.toISOString(),
+      hoursKept: hours,
+    };
+  }
 }
+

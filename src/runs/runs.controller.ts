@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Query, Get } from '@nestjs/common';
+import { Controller, Post, Param, Query, Get, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { RunsService } from './runs.service';
 
@@ -26,5 +26,11 @@ export class RunsController {
   @ApiOperation({ summary: 'Get run by id' })
   findOne(@Param('id') id: number) {
     return this.service.findOne(+id);
+  }
+
+  @Delete('cleanup')
+  @ApiOperation({ summary: 'Delete runs older than specified hours' })
+  cleanup(@Query('hours') hours: number) {
+    return this.service.deleteOlderThan(+hours);
   }
 }
