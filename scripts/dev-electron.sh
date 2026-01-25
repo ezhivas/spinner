@@ -3,6 +3,9 @@
 echo "💻 Starting in Electron mode..."
 echo ""
 
+# Navigate to project root (one level up from scripts/)
+cd "$(dirname "$0")/.." || exit 1
+
 # Check if .env.electron exists
 if [ ! -f .env.electron ]; then
     echo "❌ Error: .env.electron not found"
