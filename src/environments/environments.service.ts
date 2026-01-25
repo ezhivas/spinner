@@ -57,4 +57,53 @@ export class EnvironmentsService {
     }
     throw new NotFoundException(`Variable '${key}' not found in environment`);
   }
+
+  async importFromPostman(postmanEnv: any) {
+    // Postman environment format:
+    // {
+    //   "name": "Environment Name",
+    //   "values": [
+    //     { "key": "BASE_URL", "value": "https://api.example.com", "enabled": true },
+    //     { "key": "API_KEY", "value": "abc123", "enabled": true }
+    //   ]
+    // }
+
+    const variables: Record<string, string> = {};
+
+    if (postmanEnv.values && Array.isArray(postmanEnv.values)) {
+      postmanEnv.values.forEach((item: any) => {
+        if (item.enabled !== false) {
+          variables[item.key] = item.value || '';
+        }
+      });
+    }
+
+    const env = this.repo.create({
+      name: postmanEnv.name || 'Imported Environment',
+      variables,
+    });
+
+    return this.repo.save(env);
+  }
+
+  async exportToPostman(id: number) {
+    const env = await this.findOne(id);
+
+    // Convert to Postman format
+    const values = Object.entries(env.variables || {}).map(([key, value]) => ({
+      key,
+      value,
+      enabled: true,
+      type: 'default',
+    }));
+
+    return {
+      id: env.id.toString(),
+      name: env.name,
+      values,
+      _postman_variable_scope: 'environment',
+      _postman_exported_at: new Date().toISOString(),
+      _postman_exported_using: 'SpinneR API Client',
+    };
+  }
 }

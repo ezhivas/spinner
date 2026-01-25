@@ -378,8 +378,12 @@
         <div id="environmentsList" class="space-y-2 mb-4">
             <div class="text-center text-gray-500">Loading...</div>
         </div>
-        <button id="newEnvironmentBtn" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2 rounded">+ New Environment</button>
-        <div class="flex justify-end mt-4">
+        <button id="newEnvironmentBtn" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-2 rounded mb-2">+ New Environment</button>
+        <div class="flex gap-2 mb-4">
+            <button id="importEnvironmentBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded text-sm">📥 Import</button>
+            <button id="exportEnvironmentBtn" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded text-sm">📤 Export</button>
+        </div>
+        <div class="flex justify-end">
             <button id="closeManageEnvironments" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
         </div>
     </div>
@@ -460,6 +464,42 @@
         <div class="flex justify-end">
             <button id="closeManageVariables" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Close</button>
         </div>
+    </div>
+</div>
+
+<!-- Modal for importing environment -->
+<div id="importEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-[500px] max-w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">Import Environment</h2>
+        <form id="importEnvironmentForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Paste Postman Environment JSON</label>
+                <textarea id="importEnvironmentJson" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300" rows="10" placeholder='{"name": "My Environment", "values": [{"key": "BASE_URL", "value": "https://api.example.com", "enabled": true}]}'></textarea>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="cancelImportEnvironment" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded">Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for exporting environment -->
+<div id="exportEnvironmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-6 rounded-lg w-96 max-w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Export Environment</h2>
+        <form id="exportEnvironmentForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Select Environment</label>
+                <select id="exportEnvironmentSelect" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-gray-300">
+                    <option value="">Select an environment...</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="cancelExportEnvironment" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded">Export</button>
+            </div>
+        </form>
     </div>
 </div>
 

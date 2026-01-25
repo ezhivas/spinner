@@ -1056,6 +1056,121 @@
         }
     }
 
+    // Import/Export Environment functions
+    function showImportEnvironmentModal() {
+        toggleModal('importEnvironmentModal', true);
+        document.getElementById('importEnvironmentJson').value = '';
+    }
+
+    function hideImportEnvironmentModal() {
+        toggleModal('importEnvironmentModal', false);
+    }
+
+    function showExportEnvironmentModal() {
+        loadEnvironmentsForExport();
+        toggleModal('exportEnvironmentModal', true);
+    }
+
+    function hideExportEnvironmentModal() {
+        toggleModal('exportEnvironmentModal', false);
+    }
+
+    async function loadEnvironmentsForExport() {
+        const select = document.getElementById('exportEnvironmentSelect');
+        select.innerHTML = '<option value="">Select an environment...</option>';
+
+        try {
+            const res = await fetch(`${API_URL}/environments`);
+            const environments = await res.json();
+
+            environments.forEach(env => {
+                const option = document.createElement('option');
+                option.value = env.id;
+                option.textContent = env.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading environments:', err);
+        }
+    }
+
+    // Import environment form handler
+    document.getElementById('importEnvironmentForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const jsonText = document.getElementById('importEnvironmentJson').value.trim();
+
+        if (!jsonText) {
+            alert('Please paste environment JSON');
+            return;
+        }
+
+        let postmanEnv;
+        try {
+            postmanEnv = JSON.parse(jsonText);
+        } catch (e) {
+            alert('Invalid JSON format');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postmanEnv)
+            });
+
+            if (res.ok) {
+                const importedEnv = await res.json();
+                loadEnvironments();
+                loadEnvironmentsForSelect();
+                hideImportEnvironmentModal();
+                alert(`✅ Environment "${importedEnv.name}" imported successfully!`);
+            } else {
+                alert('Error importing environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    };
+
+    // Export environment form handler
+    document.getElementById('exportEnvironmentForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const envId = document.getElementById('exportEnvironmentSelect').value;
+
+        if (!envId) {
+            alert('Please select an environment');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/environments/${envId}/export`);
+            if (res.ok) {
+                const postmanEnv = await res.json();
+
+                // Create and download JSON file
+                const blob = new Blob([JSON.stringify(postmanEnv, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `${postmanEnv.name.replace(/\s+/g, '_')}_environment.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                hideExportEnvironmentModal();
+                alert('✅ Environment exported successfully!');
+            } else {
+                alert('Error exporting environment');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    };
+
     // Инит
     loadRequests();
     loadEnvironmentsForSelect();
@@ -1401,6 +1516,10 @@
     document.getElementById('closeViewRun').addEventListener('click', () => {
         toggleModal('viewRunModal', false);
     });
+    document.getElementById('importEnvironmentBtn').addEventListener('click', showImportEnvironmentModal);
+    document.getElementById('exportEnvironmentBtn').addEventListener('click', showExportEnvironmentModal);
+    document.getElementById('cancelImportEnvironment').addEventListener('click', hideImportEnvironmentModal);
+    document.getElementById('cancelExportEnvironment').addEventListener('click', hideExportEnvironmentModal);
 
     // Track changes to show save button
     document.getElementById('methodSelect').addEventListener('change', markAsChanged);

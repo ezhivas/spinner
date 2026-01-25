@@ -49,4 +49,16 @@ export class EnvironmentsController {
   deleteVariable(@Param('id') id: number, @Param('key') key: string) {
     return this.service.deleteVariable(+id, key);
   }
+
+  @Post('import')
+  @ApiOperation({ summary: 'Import environment from Postman format' })
+  import(@Body() postmanEnv: any) {
+    return this.service.importFromPostman(postmanEnv);
+  }
+
+  @Get(':id/export')
+  @ApiOperation({ summary: 'Export environment to Postman format' })
+  export(@Param('id') id: number) {
+    return this.service.exportToPostman(+id);
+  }
 }
