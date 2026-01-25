@@ -14,24 +14,32 @@ files:
   - electron/**/*
   - node_modules/**/*
   - package.json
+  - data/
+
+# Extra resources
+extraResources:
+  - data/
 
 # macOS specific
 mac:
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
   category: public.app-category.developer-tools
-  icon: build/icon.icns
-  hardenedRuntime: true
+  # icon: build/icon.icns  # Commented out until icon is created
+  hardenedRuntime: false  # Set to true when you have Apple Developer ID
   gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
 
 # DMG configuration
 dmg:
   title: ${productName} ${version}
-  icon: build/icon.icns
-  background: build/background.png
+  # icon: build/icon.icns  # Commented out until icon is created
   contents:
     - x: 130
       y: 220
@@ -39,15 +47,21 @@ dmg:
       y: 220
       type: link
       path: /Applications
+  window:
+    width: 540
+    height: 380
 
 # Compression
 compression: normal
 
-# Auto update
-publish:
-  provider: github
-  owner: yourusername
-  repo: spinner-api-client
+# File associations
+fileAssociations:
+  - ext: json
+    name: SpinneR Collection
+    role: Editor
 
-# Additional configuration
-afterSign: build/notarize.js
+# Protocols
+protocols:
+  - name: SpinneR Protocol
+    schemes:
+      - spinner

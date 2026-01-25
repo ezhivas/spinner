@@ -66,3 +66,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 *.db-shm
 *.db-wal
 
+# Environment files (active)
+.env
+
+# Keep environment templates
+!.env.docker
+!.env.electron

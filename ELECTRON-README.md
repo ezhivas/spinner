@@ -1,6 +1,6 @@
 # SpinneR API Client - Electron Desktop App
 
-## ✅ Stages 1-5 Complete!
+## ✅ Stages 1-7 Complete! (87.5%)
 
 The following has been implemented:
 
@@ -44,30 +44,74 @@ The following has been implemented:
 - [x] Mode indicator in UI (💻 Desktop / 🌐 Web)
 - [x] Native file dialogs for backup/restore
 
+### Stage 6: Build & Package ✅
+- [x] Added build scripts (build:mac, pack, etc.)
+- [x] Updated electron-builder.yml - ARM64 + x64 support
+- [x] Created build assets directory structure
+- [x] DMG installer generation working
+- [x] ZIP portable version creation
+- [x] Complete BUILD-GUIDE.md documentation
+
+### Stage 7: Dual-Mode Support ✅
+- [x] Created .env.docker for Docker mode
+- [x] Updated .env.electron for Electron mode
+- [x] Created dev-docker.sh and dev-electron.sh scripts
+- [x] Added npm run dev:docker and dev:electron commands
+- [x] Complete DUAL-MODE-GUIDE.md documentation
+- [x] Automatic mode switching
+
 ## 🚀 Quick Start
 
-### Development Mode
+### Development Mode (Choose One)
+
+#### Docker Mode (Web Development):
+```bash
+npm run dev:docker
+# Opens: http://localhost:3000 in browser
+# Shows: 🌐 Web badge
+# Uses: PostgreSQL + Redis
+```
+
+#### Electron Mode (Desktop Development):
+```bash
+npm run dev:electron
+# Opens: Desktop application window
+# Shows: 💻 Desktop badge
+# Uses: SQLite (no external dependencies)
+```
+
+### Building for Distribution
 
 ```bash
-# Build the NestJS backend
-npm run build
+# Quick test build (no installer)
+npm run pack
+# Result: release/mac/SpinneR.app
 
-# Run in Electron
-npm run electron:dev
+# Full production build (DMG + ZIP)
+npm run build:mac
+# Results: 
+#   - release/SpinneR-0.0.1.dmg
+#   - release/SpinneR-0.0.1-mac.zip
 ```
 
 ### Available Scripts
 
 ```bash
-# Development
-npm run electron:dev          # Run app in development mode
-npm run electron:rebuild      # Rebuild native modules for Electron
+# Development Modes
+npm run dev                   # Default (Docker mode)
+npm run dev:docker            # Docker: PostgreSQL + Redis
+npm run dev:electron          # Electron: SQLite, standalone
 
-# Production
-npm run electron:build        # Build distributable app
+# Building
+npm run build                 # Build backend only
+npm run pack                  # Quick test build
+npm run build:mac             # Full build (DMG + ZIP)
+npm run build:mac:arm64       # Apple Silicon only
+npm run build:mac:x64         # Intel only
 
-# Regular development (Docker)
-npm run start:dev             # Start with PostgreSQL/Redis
+# Utilities
+npm run electron:rebuild      # Rebuild native modules
+npm run start:dev             # Start backend only (development)
 ```
 
 ## 📁 Project Structure

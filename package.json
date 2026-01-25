@@ -22,7 +22,15 @@
     "electron:dev": "npm run build && NODE_ENV=development electron electron/main.js",
     "electron:build": "npm run build && electron-builder",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "build:backend": "nest build",
+    "build:mac": "npm run build:backend && electron-builder --mac",
+    "build:mac:arm64": "npm run build:backend && electron-builder --mac --arm64",
+    "build:mac:x64": "npm run build:backend && electron-builder --mac --x64",
+    "pack": "npm run build:backend && electron-builder --dir",
+    "dev": "npm run dev:docker",
+    "dev:docker": "./scripts/dev-docker.sh",
+    "dev:electron": "./scripts/dev-electron.sh"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
