@@ -79,32 +79,39 @@ export class RunsService {
       const startTime = Date.now();
 
       // Resolve variables if environment is provided
-      let resolvedRequest = { ...run.request };
-      if (environmentId && run.environment) {
-        resolvedRequest = this.variableResolver.resolveVariables(
-          run.request,
-          run.environment,
-        );
-      }
+      const variables = run.environment?.variables || {};
+      const resolvedUrl = this.variableResolver.resolve(run.request.url, variables);
+      const resolvedHeaders = this.variableResolver.resolveObject(run.request.headers || {}, variables);
+      const resolvedQueryParams = this.variableResolver.resolveObject(run.request.queryParams || {}, variables);
+      const resolvedBody = this.variableResolver.resolveObject(run.request.body, variables);
+
+      // Build axios config
+      const config = {
+        method: run.request.method,
+        url: resolvedUrl,
+        headers: resolvedHeaders,
+        params: resolvedQueryParams,
+        data: resolvedBody,
+      };
 
       // Execute HTTP request
-      const result = await this.httpExecutor.execute(resolvedRequest);
+      const result = await this.httpExecutor.execute(config);
 
       // Update run with results
       await this.runRepo.update(run.id, {
-        status: 'SUCCESS',
-        responseStatus: result.status,
-        responseHeaders: result.headers,
-        responseBody: result.data,
-        durationMs: Date.now() - startTime,
-        error: null,
+        status: result.status,
+        responseStatus: result.responseStatus,
+        responseHeaders: result.responseHeaders as any,
+        responseBody: result.responseBody as any,
+        durationMs: result.durationMs,
+        error: result.error,
       });
     } catch (error: any) {
       // Update run with error
       await this.runRepo.update(runId, {
         status: 'ERROR',
         error: error.message || 'Unknown error',
-        durationMs: Date.now() - Date.now(),
+        durationMs: 0,
       });
     }
   }
