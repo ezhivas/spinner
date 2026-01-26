@@ -1892,21 +1892,22 @@
         let headers = null;
 
         try {
-            if (queryParamsText) queryParams = JSON.parse(queryParamsText);
-            if (headersText) headers = JSON.parse(headersText);
+            if (queryParamsText) queryParams = JSON5.parse(queryParamsText); // Используем JSON5
+            if (headersText) headers = JSON5.parse(headersText);             // Используем JSON5
 
             // Handle body based on type
             if (bodyType === 'json') {
                 const bodyText = newRequestBodyEditor.getValue().trim();
-                if (bodyText) body = JSON.parse(bodyText);
+                if (bodyText) body = JSON5.parse(bodyText);                  // Используем JSON5
             } else if (bodyType === 'form-data') {
                 const formData = getFormDataFromFields('formDataFields');
-                if (Object.keys(formData).length > 0) {
-                    body = formData;
-                }
+                        if (Object.keys(formData).length > 0) {
+                            body = formData;
+                        }
+
             }
         } catch (e) {
-            showErrorToast('Invalid JSON in query params, body or headers');
+            showErrorToast('Invalid format in query params, body or headers: ' + e.message);
             return;
         }
 
@@ -2091,23 +2092,25 @@
         let headers = null;
 
         try {
-            if (queryParamsText) queryParams = JSON.parse(queryParamsText);
-            if (headersText) headers = JSON.parse(headersText);
+            if (queryParamsText) queryParams = JSON5.parse(queryParamsText);
+            if (headersText) headers = JSON5.parse(headersText);
 
             // Handle body based on type
             if (bodyType === 'json') {
                 const bodyText = bodyEditor.getValue().trim();
-                if (bodyText) body = JSON.parse(bodyText);
+                if (bodyText) body = JSON5.parse(bodyText);
             } else if (bodyType === 'form-data') {
                 const formData = getFormDataFromFields('requestFormDataFields');
                 if (Object.keys(formData).length > 0) {
                     body = formData;
                 }
             }
+
         } catch (e) {
-            showErrorToast('Invalid JSON in query params, body or headers');
+            showErrorToast('Invalid format in query params, body or headers: ' + e.message);
             return;
         }
+
 
         try {
             const res = await fetch(`${API_URL}/requests/${currentRequestId}`, {
