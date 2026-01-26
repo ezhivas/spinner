@@ -13,7 +13,7 @@ interface PostRequestContext {
     text: () => string;
   };
   environment: {
-    set: (key: string, value: any) => Promise<void>;
+    set: (key: string, value: any) => void;
     get: (key: string) => any;
   };
 }
@@ -92,17 +92,17 @@ export class PostRequestScriptService {
           text: () => JSON.stringify(responseBody),
         },
         environment: {
-          set: async (key: string, value: any) => {
+          set: (key: string, value: any) => {
             if (!environment) {
-              throw new Error('No environment selected');
+              throw new Error('Cannot set environment variable: No environment selected. Please select an environment before running this request.');
             }
             // Validate key/value
             if (typeof key !== 'string' || key.length === 0 || key.length > 100) {
-              throw new Error('Invalid variable key');
+              throw new Error('Invalid variable key: must be a non-empty string (max 100 characters)');
             }
             const strValue = String(value);
             if (strValue.length > 10000) {
-              throw new Error('Variable value too long');
+              throw new Error('Variable value too long (max 10000 characters)');
             }
             // Store for later (don't access DB from sandbox)
             pendingVariables[key] = strValue;
@@ -145,10 +145,15 @@ export class PostRequestScriptService {
       // 5. Create VM context with timeout
       const context = vm.createContext(sandbox);
 
-      // 6. Wrap script in async IIFE to support await
+      // 6. Wrap script in async IIFE with try-catch to handle errors gracefully
       const wrappedScript = `
         (async function() {
-          ${script}
+          try {
+            ${script}
+          } catch (error) {
+            // Re-throw with better error message
+            throw new Error('Script error: ' + (error.message || String(error)));
+          }
         })();
       `;
 

@@ -525,6 +525,13 @@
             statusValue.textContent = 'ERROR';
             area.className = 'flex-1 bg-gray-800 p-4 rounded border border-gray-700 font-mono text-sm text-red-400 overflow-auto whitespace-pre-wrap';
             area.textContent = JSON.stringify({ error: run.error }, null, 2);
+
+            // Check if error is related to missing environment
+            if (run.error && run.error.includes('No environment selected')) {
+                showToast('⚠️ Post-request script failed: No environment selected. Please select an environment to use pm.environment.set()', 'warning', 8000);
+            } else if (run.error && run.error.includes('Security violation')) {
+                showToast('🔒 Post-request script blocked: ' + run.error, 'error', 8000);
+            }
         }
 
         timerValue.textContent = `${run.durationMs}ms`;

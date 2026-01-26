@@ -39,6 +39,7 @@ export function startRunsWorker(
       await queryRunner.startTransaction();
 
       try {
+        // ...existing code...
         const runRepo = queryRunner.manager.getRepository(RequestRunEntity);
         const run = await runRepo.findOne({
           where: { id: job.data.runId },
@@ -94,11 +95,11 @@ export function startRunsWorker(
 
         // Trying to salvage the situation: update status to ERROR outside the transaction
         try {
-          const runRepo = dataSource.getRepository(RequestRunEntity); // Taking the repository directly
+          const runRepo = dataSource.getRepository(RequestRunEntity);
           await runRepo.update(job.data.runId, {
             status: 'ERROR',
-            error: e.message, // Saving the error text to see in the UI
-            durationMs: 0,    // Or calculate the time until failure
+            error: e.message,
+            durationMs: 0,
           });
         } catch (dbError) {
           logger.error('Failed to update run status to ERROR', dbError);
@@ -109,10 +110,15 @@ export function startRunsWorker(
     },
     {
       connection: bullConnection,
+      lockDuration: 120000, // 120 seconds (2 minutes) - enough for slow HTTP requests + scripts
+      stalledInterval: 30000, // Check for stalled jobs every 30 seconds
+      maxStalledCount: 2, // Allow 2 stalls before failing permanently
+      concurrency: 5, // Process up to 5 jobs in parallel
     },
   );
 
   worker.on('ready', () => logger.log('Runs worker is ready'));
   worker.on('error', (err) => logger.error('Runs worker error', err));
   worker.on('failed', (job, err) => logger.error(`Job ${job?.id} failed`, err));
+  worker.on('stalled', (jobId) => logger.warn(`Job ${jobId} stalled - may be taking too long`));
 }
