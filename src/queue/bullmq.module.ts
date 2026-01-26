@@ -1,4 +1,4 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 export const RUNS_QUEUE = 'runs';
@@ -47,4 +47,12 @@ logger.log('Runs queue initialized');
   ],
   exports: ['RUNS_QUEUE', 'IS_ELECTRON'],
 })
-export class BullmqModule {}
+export class BullmqModule implements OnModuleDestroy {
+  async onModuleDestroy() {
+    if (runsQueue) {
+      logger.log('Closing BullMQ queue connection...');
+      await runsQueue.close();
+      logger.log('BullMQ queue connection closed');
+    }
+  }
+}

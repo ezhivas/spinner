@@ -240,14 +240,7 @@ npm run test:watch
 
 # Run tests with coverage
 npm run test:cov
-
-# Run E2E tests
-npm run test:e2e
-
-# Run all tests + linting
-npm run test:all
-
-# Run CI tests (for GitHub Actions)
+```
 npm run test:ci
 ```
 
