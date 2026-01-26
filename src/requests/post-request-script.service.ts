@@ -70,7 +70,11 @@ export class PostRequestScriptService {
     responseHeaders: Record<string, any>,
     responseBody: any,
     environment?: EnvironmentEntity,
-  ): Promise<{ success: boolean; error?: string; updatedVariables?: Record<string, string> }> {
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    updatedVariables?: Record<string, string>;
+  }> {
     if (!script || script.trim() === '') {
       return { success: true };
     }
@@ -94,11 +98,19 @@ export class PostRequestScriptService {
         environment: {
           set: (key: string, value: any) => {
             if (!environment) {
-              throw new Error('Cannot set environment variable: No environment selected. Please select an environment before running this request.');
+              throw new Error(
+                'Cannot set environment variable: No environment selected. Please select an environment before running this request.',
+              );
             }
             // Validate key/value
-            if (typeof key !== 'string' || key.length === 0 || key.length > 100) {
-              throw new Error('Invalid variable key: must be a non-empty string (max 100 characters)');
+            if (
+              typeof key !== 'string' ||
+              key.length === 0 ||
+              key.length > 100
+            ) {
+              throw new Error(
+                'Invalid variable key: must be a non-empty string (max 100 characters)',
+              );
             }
             const strValue = String(value);
             if (strValue.length > 10000) {
@@ -169,7 +181,10 @@ export class PostRequestScriptService {
 
       // 8. Race against timeout
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Script execution timeout (5 seconds)')), 5000);
+        setTimeout(
+          () => reject(new Error('Script execution timeout (5 seconds)')),
+          5000,
+        );
       });
 
       await Promise.race([executionPromise, timeoutPromise]);
@@ -198,4 +213,3 @@ export class PostRequestScriptService {
     }
   }
 }
-

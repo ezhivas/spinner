@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+} from 'class-validator';
 import { HttpMethod } from '../request.entity';
 
 export class CreateRequestDto {

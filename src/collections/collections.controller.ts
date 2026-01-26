@@ -56,7 +56,9 @@ export class CollectionsController {
 
   @Post('import')
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Import collection from Postman (JSON body or file upload)' })
+  @ApiOperation({
+    summary: 'Import collection from Postman (JSON body or file upload)',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

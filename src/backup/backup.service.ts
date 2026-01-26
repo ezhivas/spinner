@@ -121,9 +121,7 @@ export class BackupService {
           collectionIdMap.set(collectionData.id, saved.id);
           imported.collections++;
         } catch (err) {
-          errors.push(
-            `Collection "${collectionData.name}": ${err.message}`,
-          );
+          errors.push(`Collection "${collectionData.name}": ${err.message}`);
         }
       }
 

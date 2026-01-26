@@ -52,7 +52,7 @@ export class RunsService {
 
     if (this.isElectron) {
       // Electron mode: Execute synchronously without queue
-      this.executeRunSync(run.id, environmentId);
+      void this.executeRunSync(run.id);
     } else {
       // Docker mode: Use queue
       if (this.queue) {
@@ -67,7 +67,7 @@ export class RunsService {
   }
 
   // Synchronous execution for Electron mode
-  private async executeRunSync(runId: number, environmentId?: number) {
+  private async executeRunSync(runId: number) {
     try {
       const run = await this.runRepo.findOne({
         where: { id: runId },
@@ -78,14 +78,24 @@ export class RunsService {
         throw new Error('Run not found');
       }
 
-      const startTime = Date.now();
-
       // Resolve variables if environment is provided
       const variables = run.environment?.variables || {};
-      const resolvedUrl = this.variableResolver.resolve(run.request.url, variables);
-      const resolvedHeaders = this.variableResolver.resolveObject(run.request.headers || {}, variables);
-      const resolvedQueryParams = this.variableResolver.resolveObject(run.request.queryParams || {}, variables);
-      const resolvedBody = this.variableResolver.resolveObject(run.request.body, variables);
+      const resolvedUrl = this.variableResolver.resolve(
+        run.request.url,
+        variables,
+      );
+      const resolvedHeaders = this.variableResolver.resolveObject(
+        run.request.headers || {},
+        variables,
+      );
+      const resolvedQueryParams = this.variableResolver.resolveObject(
+        run.request.queryParams || {},
+        variables,
+      );
+      const resolvedBody = this.variableResolver.resolveObject(
+        run.request.body,
+        variables,
+      );
 
       // Build axios config
       const config = {
@@ -136,9 +146,9 @@ export class RunsService {
 
   async findAll() {
     return this.runRepo.find({
-        relations: ['request', 'environment'],
-        order: { createdAt: 'DESC' },
-        take: 100,
+      relations: ['request', 'environment'],
+      order: { createdAt: 'DESC' },
+      take: 100,
     });
   }
 
@@ -164,4 +174,3 @@ export class RunsService {
     };
   }
 }
-

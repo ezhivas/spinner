@@ -1,5 +1,4 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { join } from 'path';
 
 /**
  * Database configuration factory
@@ -17,9 +16,15 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
     const dbPath = process.env.DB_PATH;
 
     if (!dbPath) {
-      console.error('❌ ERROR: DB_PATH not set! This will fail when running from DMG.');
-      console.error('   Electron main.js must set DB_PATH to app.getPath("userData")');
-      throw new Error('DB_PATH environment variable is required for Electron mode');
+      console.error(
+        '❌ ERROR: DB_PATH not set! This will fail when running from DMG.',
+      );
+      console.error(
+        '   Electron main.js must set DB_PATH to app.getPath("userData")',
+      );
+      throw new Error(
+        'DB_PATH environment variable is required for Electron mode',
+      );
     }
 
     console.log(`📁 Database path: ${dbPath}`);

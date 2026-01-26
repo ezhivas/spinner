@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RequestEntity } from './request.entity';
@@ -28,7 +32,9 @@ export class RequestsService {
     const { collectionId, ...data } = dto;
     const request = this.repo.create(data);
     if (collectionId) {
-      const collection = await this.repo.manager.findOne(CollectionEntity, { where: { id: collectionId } });
+      const collection = await this.repo.manager.findOne(CollectionEntity, {
+        where: { id: collectionId },
+      });
       if (collection) {
         request.collection = collection;
       }
@@ -38,13 +44,19 @@ export class RequestsService {
 
   findAll(collectionId?: number) {
     if (collectionId) {
-      return this.repo.find({ where: { collectionId }, relations: ['collection'] });
+      return this.repo.find({
+        where: { collectionId },
+        relations: ['collection'],
+      });
     }
     return this.repo.find({ relations: ['collection'] });
   }
 
   async findOne(id: number) {
-    const request = await this.repo.findOne({ where: { id }, relations: ['collection'] });
+    const request = await this.repo.findOne({
+      where: { id },
+      relations: ['collection'],
+    });
     if (!request) {
       throw new NotFoundException('Request not found');
     }
@@ -66,7 +78,9 @@ export class RequestsService {
     Object.assign(request, data);
     if (collectionId !== undefined) {
       if (collectionId) {
-        const collection = await this.repo.manager.findOne(CollectionEntity, { where: { id: collectionId } });
+        const collection = await this.repo.manager.findOne(CollectionEntity, {
+          where: { id: collectionId },
+        });
         if (collection) {
           request.collection = collection;
         }

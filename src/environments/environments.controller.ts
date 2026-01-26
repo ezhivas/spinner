@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { EnvironmentsService } from './environments.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
@@ -40,7 +48,10 @@ export class EnvironmentsController {
 
   @Patch(':id/variables')
   @ApiOperation({ summary: 'Add or update variables in environment' })
-  updateVariables(@Param('id') id: number, @Body() variables: Record<string, string>) {
+  updateVariables(
+    @Param('id') id: number,
+    @Body() variables: Record<string, string>,
+  ) {
     return this.service.updateVariables(+id, variables);
   }
 

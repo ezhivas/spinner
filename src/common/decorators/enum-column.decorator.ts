@@ -17,7 +17,8 @@ export function EnumColumn(options: ColumnOptions & { enum: any }) {
 
     if (dbType === 'sqlite') {
       // SQLite doesn't support enum, use text instead
-      const { enum: enumType, ...restOptions } = options;
+      // Remove enum from options for SQLite
+      const { enum: _, ...restOptions } = options;
       const columnOptions: ColumnOptions = {
         ...restOptions,
         type: 'text',

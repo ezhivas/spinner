@@ -15,10 +15,13 @@ export function startRunsWorker(
   const logger = new Logger('RunsWorker');
 
   // Check if running in Electron mode
-  const isElectron = process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
+  const isElectron =
+    process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
 
   if (isElectron) {
-    logger.log('⏭️  Skipping runs worker (Electron mode - using synchronous execution)');
+    logger.log(
+      '⏭️  Skipping runs worker (Electron mode - using synchronous execution)',
+    );
     return;
   }
 
@@ -49,10 +52,22 @@ export function startRunsWorker(
         if (!run) throw new Error('Run not found');
 
         const variables = run.environment?.variables || {};
-        const resolvedUrl = variableResolver.resolve(run.request.url, variables);
-        const resolvedHeaders = variableResolver.resolveObject(run.request.headers || {}, variables);
-        const resolvedQueryParams = variableResolver.resolveObject(run.request.queryParams || {}, variables);
-        const resolvedBody = variableResolver.resolveObject(run.request.body, variables);
+        const resolvedUrl = variableResolver.resolve(
+          run.request.url,
+          variables,
+        );
+        const resolvedHeaders = variableResolver.resolveObject(
+          run.request.headers || {},
+          variables,
+        );
+        const resolvedQueryParams = variableResolver.resolveObject(
+          run.request.queryParams || {},
+          variables,
+        );
+        const resolvedBody = variableResolver.resolveObject(
+          run.request.body,
+          variables,
+        );
 
         const config = {
           method: run.request.method,
@@ -75,7 +90,9 @@ export function startRunsWorker(
           );
 
           if (!scriptResult.success) {
-            logger.error(`Post-request script failed for run ${run.id}: ${scriptResult.error}`);
+            logger.error(
+              `Post-request script failed for run ${run.id}: ${scriptResult.error}`,
+            );
           }
         }
 
@@ -120,5 +137,7 @@ export function startRunsWorker(
   worker.on('ready', () => logger.log('Runs worker is ready'));
   worker.on('error', (err) => logger.error('Runs worker error', err));
   worker.on('failed', (job, err) => logger.error(`Job ${job?.id} failed`, err));
-  worker.on('stalled', (jobId) => logger.warn(`Job ${jobId} stalled - may be taking too long`));
+  worker.on('stalled', (jobId) =>
+    logger.warn(`Job ${jobId} stalled - may be taking too long`),
+  );
 }

@@ -6,10 +6,7 @@ import { CollectionEntity } from './collection.entity';
 import { RequestsModule } from '../requests/requests.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([CollectionEntity]),
-    RequestsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([CollectionEntity]), RequestsModule],
   providers: [CollectionsService],
   controllers: [CollectionsController],
 })

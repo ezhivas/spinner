@@ -28,7 +28,10 @@ async function bootstrap() {
     console.log('🚀 Running in Electron mode');
     // Serve static files (frontend) in Electron mode
     app.useStaticAssets(join(__dirname, '..', 'public'));
-    console.log('📁 Serving static files from:', join(__dirname, '..', 'public'));
+    console.log(
+      '📁 Serving static files from:',
+      join(__dirname, '..', 'public'),
+    );
   } else {
     console.log('🚀 Running in Docker mode');
   }
@@ -49,7 +52,12 @@ async function bootstrap() {
     const httpExecutor = app.get(HttpExecutorService);
     const variableResolver = app.get(VariableResolverService);
     const postRequestScriptService = app.get(PostRequestScriptService);
-    startRunsWorker(dataSource, httpExecutor, variableResolver, postRequestScriptService);
+    startRunsWorker(
+      dataSource,
+      httpExecutor,
+      variableResolver,
+      postRequestScriptService,
+    );
     console.log('✅ Runs worker started successfully');
   } catch (error) {
     console.error('❌ Failed to start runs worker:', error);
@@ -66,4 +74,4 @@ async function bootstrap() {
   console.log(`📚 Swagger docs at: http://localhost:${port}/api`);
 }
 
-bootstrap();
+void bootstrap();

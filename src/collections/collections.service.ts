@@ -19,7 +19,9 @@ export class CollectionsService {
   }
 
   async findAll(): Promise<CollectionEntity[]> {
-    return this.collectionRepo.find({ relations: ['requests', 'requests.collection'] });
+    return this.collectionRepo.find({
+      relations: ['requests', 'requests.collection'],
+    });
   }
 
   async findOne(id: number): Promise<CollectionEntity | null> {
@@ -29,7 +31,10 @@ export class CollectionsService {
     });
   }
 
-  async update(id: number, dto: Partial<CreateCollectionDto>): Promise<CollectionEntity | null> {
+  async update(
+    id: number,
+    dto: Partial<CreateCollectionDto>,
+  ): Promise<CollectionEntity | null> {
     await this.collectionRepo.update(id, dto);
     return this.findOne(id);
   }
@@ -44,7 +49,9 @@ export class CollectionsService {
       description: postmanCollection.info?.description || '',
     });
 
-    const requests: any[] = this.extractRequestsFromPostman(postmanCollection.item || []);
+    const requests: any[] = this.extractRequestsFromPostman(
+      postmanCollection.item || [],
+    );
     for (const req of requests) {
       await this.requestsService.create({
         ...req,
@@ -69,17 +76,19 @@ export class CollectionsService {
             body = req.body.raw;
           } else if (req.body.mode === 'formdata') {
             // Convert formdata to JSON object
-            const formdata = req.body.formdata?.reduce((acc, f) => {
-              acc[f.key] = f.value;
-              return acc;
-            }, {}) || {};
+            const formdata =
+              req.body.formdata?.reduce((acc, f) => {
+                acc[f.key] = f.value;
+                return acc;
+              }, {}) || {};
             body = JSON.stringify(formdata);
           } else if (req.body.mode === 'urlencoded') {
             // Similar to formdata
-            const urlencoded = req.body.urlencoded?.reduce((acc, u) => {
-              acc[u.key] = u.value;
-              return acc;
-            }, {}) || {};
+            const urlencoded =
+              req.body.urlencoded?.reduce((acc, u) => {
+                acc[u.key] = u.value;
+                return acc;
+              }, {}) || {};
             body = JSON.stringify(urlencoded);
           }
           // Other modes like file, graphql can be handled later
@@ -88,8 +97,16 @@ export class CollectionsService {
           name: item.name,
           method: req.method,
           url: typeof req.url === 'string' ? req.url : req.url?.raw || '',
-          headers: req.header?.reduce((acc, h) => ({ ...acc, [h.key]: h.value }), {}) || {},
-          queryParams: req.url?.query?.reduce((acc, q) => ({ ...acc, [q.key]: q.value }), {}) || {},
+          headers:
+            req.header?.reduce(
+              (acc, h) => ({ ...acc, [h.key]: h.value }),
+              {},
+            ) || {},
+          queryParams:
+            req.url?.query?.reduce(
+              (acc, q) => ({ ...acc, [q.key]: q.value }),
+              {},
+            ) || {},
           body,
         });
       } else if (item.item) {
@@ -101,21 +118,29 @@ export class CollectionsService {
   }
 
   async exportToPostman(collection: CollectionEntity): Promise<any> {
-    const items = collection.requests.map(req => ({
+    const items = collection.requests.map((req) => ({
       name: req.name,
       request: {
         method: req.method,
-        header: Object.entries(req.headers || {}).map(([key, value]) => ({ key, value })),
+        header: Object.entries(req.headers || {}).map(([key, value]) => ({
+          key,
+          value,
+        })),
         url: {
           raw: req.url,
           host: ['{{baseUrl}}'], // Placeholder
-          path: req.url.split('/').filter(p => p),
-          query: Object.entries(req.queryParams || {}).map(([key, value]) => ({ key, value })),
+          path: req.url.split('/').filter((p) => p),
+          query: Object.entries(req.queryParams || {}).map(([key, value]) => ({
+            key,
+            value,
+          })),
         },
-        body: req.body ? {
-          mode: 'raw',
-          raw: req.body,
-        } : undefined,
+        body: req.body
+          ? {
+              mode: 'raw',
+              raw: req.body,
+            }
+          : undefined,
       },
     }));
 
@@ -123,7 +148,8 @@ export class CollectionsService {
       info: {
         name: collection.name,
         description: collection.description,
-        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+        schema:
+          'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
       },
       item: items,
       variable: [

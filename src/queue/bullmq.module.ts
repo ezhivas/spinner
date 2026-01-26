@@ -6,7 +6,8 @@ export const RUNS_QUEUE = 'runs';
 const logger = new Logger('BullmqModule');
 
 // Determine if running in Electron mode
-const isElectron = process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
+const isElectron =
+  process.env.REDIS_ENABLED === 'false' || process.env.DB_TYPE === 'sqlite';
 
 let runsQueue: Queue;
 
@@ -47,5 +48,3 @@ logger.log('Runs queue initialized');
   exports: ['RUNS_QUEUE', 'IS_ELECTRON'],
 })
 export class BullmqModule {}
-
-

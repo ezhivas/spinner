@@ -20,7 +20,8 @@ export class HttpExecutorService {
 
     // Set default timeout if not provided
     if (!config.timeout) {
-      config.timeout = this.configService.get<number>('REQUEST_TIMEOUT') || 60000;
+      config.timeout =
+        this.configService.get<number>('REQUEST_TIMEOUT') || 60000;
     }
 
     try {
