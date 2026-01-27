@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-import { useCollectionsStore } from '@/store';
+import { Plus, FileText } from 'lucide-react';
+import { useCollectionsStore, useTabsStore } from '@/store';
 import { CollectionModal } from '@/components/collections/CollectionModal';
 import { CollectionItem } from '@/components/collections/CollectionItem';
 import type { ICollection } from '@shared/collections';
@@ -10,6 +10,7 @@ import type { ICollection } from '@shared/collections';
  */
 export const Sidebar = () => {
   const { collections, loading, fetchCollections } = useCollectionsStore();
+  const { addTab } = useTabsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<ICollection | null>(null);
 
@@ -32,11 +33,20 @@ export const Sidebar = () => {
     setEditingCollection(null);
   };
 
+  const handleNewRequest = () => {
+    // Создать новую вкладку для запроса
+    addTab({
+      name: 'New Request',
+      isDirty: true,
+      data: {},
+    });
+  };
+
   return (
     <>
       <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Collections</h2>
             <button
@@ -47,6 +57,15 @@ export const Sidebar = () => {
               <Plus className="w-5 h-5 text-gray-600" />
             </button>
           </div>
+
+          {/* New Request Button */}
+          <button
+            onClick={handleNewRequest}
+            className="w-full flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm"
+          >
+            <FileText className="w-4 h-4" />
+            New Request
+          </button>
         </div>
 
         {/* Collections List */}

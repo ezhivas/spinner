@@ -1,9 +1,55 @@
+# Dependencies
 node_modules
+*/node_modules
 npm-debug.log
+npm-debug.log*
+
+# Build outputs
 dist
+build
+packages/*/dist
+
+# Frontend package (не нужен в backend Docker image)
+packages/frontend
+
+# Development files
 .env
+.env.*
 .git
 .gitignore
-README.md
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
 coverage
 .nyc_output
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Release builds (Electron)
+release
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts (не нужны в production)
+scripts
+AI_docs
+
+# Public static files (old UI)
+public
+

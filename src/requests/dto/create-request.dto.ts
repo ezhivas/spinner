@@ -6,6 +6,7 @@ import {
   IsString,
   IsNumber,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { HttpMethod } from '../request.entity';
 
 export class CreateRequestDto {
@@ -37,11 +38,19 @@ export class CreateRequestDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   bodyType?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  preRequestScript?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   postRequestScript?: string;
 
   @ApiProperty({ required: false })

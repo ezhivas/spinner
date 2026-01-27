@@ -53,6 +53,9 @@ export class RequestEntity {
   collection?: CollectionEntity | null;
 
   @Column({ type: 'text', nullable: true })
+  preRequestScript?: string;
+
+  @Column({ type: 'text', nullable: true })
   postRequestScript?: string;
 
   @CreateDateColumn()

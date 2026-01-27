@@ -40,8 +40,13 @@ echo ""
 echo "Starting services..."
 echo "-------------------"
 
+# Установка переменных окружения для SQLite режима (не Docker)
+export DB_TYPE=sqlite
+export DB_PATH="./data/dev.db"
+export PORT=3000
+
 # Запуск NestJS backend
-echo "🔧 Starting NestJS backend on port 3000..."
+echo "🔧 Starting NestJS backend on port 3000 (SQLite mode)..."
 npm run start:dev > /tmp/spinner-backend.log 2>&1 &
 BACKEND_PID=$!
 
@@ -60,8 +65,8 @@ echo "✅ Services started!"
 echo "==================="
 echo ""
 echo "📱 Frontend (React):  http://localhost:5173"
-echo "🔌 Backend (NestJS):  http://localhost:3000"
-echo "📚 Swagger API:       http://localhost:3000/api"
+echo "🔌 Backend (NestJS):  http://localhost:3000/api"
+echo "📚 Swagger API:       http://localhost:3000/api-docs"
 echo ""
 echo "📋 Logs:"
 echo "   Backend:  tail -f /tmp/spinner-backend.log"

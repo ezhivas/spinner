@@ -7,6 +7,7 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExecutorService } from './http-executor/http-executor.service';
 import { VariableResolverService } from './environments/variable-resolver.service';
 import { PostRequestScriptService } from './requests/post-request-script.service';
+import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -18,8 +19,22 @@ async function bootstrap() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+  // Global validation pipe with transformation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      whitelist: true,
+    }),
+  );
+
   // Global logging
   app.useGlobalInterceptors(new LoggingInterceptor());
+
+  // Set global API prefix (all routes will be under /api/*)
+  app.setGlobalPrefix('api');
 
   // Check if running in Electron mode
   const isElectron = process.env.DB_TYPE === 'sqlite';
@@ -36,7 +51,7 @@ async function bootstrap() {
     console.log('🚀 Running in Docker mode');
   }
 
-  // Swagger
+  // Swagger (on separate path to avoid collision with API prefix)
   const config = new DocumentBuilder()
     .setTitle('API Client')
     .setDescription('Postman-like API client')
@@ -44,7 +59,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api-docs', app, document);
 
   // Worker
   try {
@@ -70,8 +85,8 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`✅ Nest application successfully started on port ${port}`);
-  console.log(`🌐 API available at: http://localhost:${port}`);
-  console.log(`📚 Swagger docs at: http://localhost:${port}/api`);
+  console.log(`🌐 API available at: http://localhost:${port}/api`);
+  console.log(`📚 Swagger docs at: http://localhost:${port}/api-docs`);
 }
 
 void bootstrap();
