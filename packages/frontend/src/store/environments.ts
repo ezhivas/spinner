@@ -17,6 +17,8 @@ interface EnvironmentsStore {
   createEnvironment: (name: string, variables?: Record<string, string>) => Promise<IEnvironment>;
   updateEnvironment: (id: number, name?: string, variables?: Record<string, string>) => Promise<void>;
   deleteEnvironment: (id: number) => Promise<void>;
+  importEnvironment: (data: any) => Promise<IEnvironment>;
+  exportEnvironment: (id: number) => Promise<any>;
   setActiveEnvironment: (id: number | null) => void;
   getActiveEnvironment: () => IEnvironment | null;
   resolveVariables: (text: string) => string;
@@ -80,6 +82,33 @@ export const useEnvironmentsStore = create<EnvironmentsStore>()(
             activeEnvironmentId: state.activeEnvironmentId === id ? null : state.activeEnvironmentId,
             loading: false,
           }));
+        } catch (error) {
+          set({ error: (error as Error).message, loading: false });
+          throw error;
+        }
+      },
+
+      importEnvironment: async (data) => {
+        set({ loading: true, error: null });
+        try {
+          const environment = await environmentsApi.import(data);
+          set((state) => ({
+            environments: [...state.environments, environment],
+            loading: false,
+          }));
+          return environment;
+        } catch (error) {
+          set({ error: (error as Error).message, loading: false });
+          throw error;
+        }
+      },
+
+      exportEnvironment: async (id) => {
+        set({ loading: true, error: null });
+        try {
+          const data = await environmentsApi.export(id);
+          set({ loading: false });
+          return data;
         } catch (error) {
           set({ error: (error as Error).message, loading: false });
           throw error;

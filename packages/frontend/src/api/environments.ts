@@ -39,4 +39,18 @@ export const environmentsApi = {
   delete: async (id: number): Promise<void> => {
     return apiClient.delete<void>(`/api/environments/${id}`);
   },
+
+  /**
+   * Импортировать окружение из Postman формата
+   */
+  import: async (data: any): Promise<IEnvironment> => {
+    return apiClient.post<IEnvironment>('/api/environments/import', data);
+  },
+
+  /**
+   * Экспортировать окружение в Postman формат
+   */
+  export: async (id: number): Promise<any> => {
+    return apiClient.get<any>(`/api/environments/${id}/export`);
+  },
 };

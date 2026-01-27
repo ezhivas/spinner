@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { Edit, Trash2, Plus, Upload, Download } from 'lucide-react';
 import { useEnvironmentsStore, useToastStore } from '@/store';
 import { Button } from '@/components/common';
 import { EnvironmentModal } from './EnvironmentModal';
+import { EnvironmentImportModal } from './EnvironmentImportModal';
+import { EnvironmentExportModal } from './EnvironmentExportModal';
 import type { IEnvironment } from '@shared/environments';
 
 /**
@@ -14,6 +16,8 @@ export const EnvironmentsList = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEnvironment, setEditingEnvironment] = useState<IEnvironment | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     fetchEnvironments();
@@ -47,12 +51,28 @@ export const EnvironmentsList = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Environments</h2>
-          <Button
-            onClick={handleCreate}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            New Environment
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowImportModal(true)}
+              variant="secondary"
+              icon={<Upload className="w-4 h-4" />}
+            >
+              Import
+            </Button>
+            <Button
+              onClick={() => setShowExportModal(true)}
+              variant="secondary"
+              icon={<Download className="w-4 h-4" />}
+            >
+              Export
+            </Button>
+            <Button
+              onClick={handleCreate}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              New Environment
+            </Button>
+          </div>
         </div>
 
         {loading && (
@@ -128,6 +148,16 @@ export const EnvironmentsList = () => {
           setEditingEnvironment(null);
         }}
         environment={editingEnvironment}
+      />
+
+      <EnvironmentImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
+
+      <EnvironmentExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
       />
     </>
   );

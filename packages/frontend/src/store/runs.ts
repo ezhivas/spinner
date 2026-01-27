@@ -17,6 +17,7 @@ interface RunsStore {
   createRun: (requestId: number, environmentId?: number) => Promise<IRun>;
   getRunById: (id: number) => Promise<IRun>;
   deleteRun: (id: number) => Promise<void>;
+  clearHistory: () => Promise<void>;
   setCurrentRun: (run: IRun | null) => void;
 }
 
@@ -83,6 +84,19 @@ export const useRunsStore = create<RunsStore>((set, get) => ({
         currentRun: state.currentRun?.id === id ? null : state.currentRun,
         loading: false,
       }));
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+      throw error;
+    }
+  },
+
+  clearHistory: async () => {
+    set({ loading: true, error: null });
+    try {
+      // Delete all runs
+      const { runs } = get();
+      await Promise.all(runs.map((run) => runsApi.delete(run.id)));
+      set({ runs: [], currentRun: null, loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;

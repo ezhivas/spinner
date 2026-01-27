@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Settings, Plus, Check } from 'lucide-react';
+import { Settings, Plus, Check, Upload, Download } from 'lucide-react';
 import { useEnvironmentsStore } from '@/store';
 import { EnvironmentModal } from './EnvironmentModal';
+import { EnvironmentImportModal } from './EnvironmentImportModal';
+import { EnvironmentExportModal } from './EnvironmentExportModal';
 import type { IEnvironment } from '@shared/environments';
 
 /**
@@ -18,6 +20,8 @@ export const EnvironmentSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEnvironment, setEditingEnvironment] = useState<IEnvironment | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     fetchEnvironments();
@@ -85,6 +89,30 @@ export const EnvironmentSelector = () => {
               <hr className="my-1 border-gray-200" />
 
               <button
+                onClick={() => {
+                  setShowImportModal(true);
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Upload className="w-4 h-4" />
+                Import Environment
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowExportModal(true);
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Download className="w-4 h-4" />
+                Export Environment
+              </button>
+
+              <hr className="my-1 border-gray-200" />
+
+              <button
                 onClick={handleManage}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-primary-600 hover:bg-primary-50"
               >
@@ -104,6 +132,18 @@ export const EnvironmentSelector = () => {
           setEditingEnvironment(null);
         }}
         environment={editingEnvironment}
+      />
+
+      {/* Import Modal */}
+      <EnvironmentImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
+
+      {/* Export Modal */}
+      <EnvironmentExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
       />
     </>
   );
