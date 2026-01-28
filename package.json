@@ -6,6 +6,11 @@
   "private": true,
   "license": "UNLICENSED",
   "main": "electron/main.js",
+  "workspaces": [
+    "packages/frontend",
+    "packages/shared-types",
+    "packages/backend"
+  ],
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -22,11 +27,11 @@
     "electron:build": "npm run build && electron-builder",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
     "dev": "npm run dev:docker",
-    "build:mac": "npm run build:backend && electron-builder --mac",
-    "build:mac:arm64": "npm run build:backend && electron-builder --mac --arm64",
-    "build:mac:x64": "npm run build:backend && electron-builder --mac --x64",
-    "pack": "npm run build:backend && electron-builder --dir",
-    "dev": "npm run dev:docker",
+    "dev:react": "./scripts/dev-react.sh",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "build:mac:x64": "npm run build && electron-builder --mac --x64",
+    "pack": "npm run build && electron-builder --dir",
     "dev:docker": "./scripts/dev-docker.sh",
     "dev:electron": "./scripts/dev-electron.sh"
   },

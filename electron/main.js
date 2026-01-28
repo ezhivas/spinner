@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, protocol } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const getPort = require('get-port');
@@ -104,7 +104,20 @@ function createWindow() {
 
     // Start backend then load UI
     startBackend().then(() => {
-        mainWindow.loadURL(`http://localhost:${backendPort}`);
+        // Load React app from backend server (it serves static from public/)
+        mainWindow.loadURL(`http://localhost:${backendPort}/index.html`);
+        
+        // Open DevTools to see console errors
+        mainWindow.webContents.openDevTools();
+        
+        // Log when page finishes loading
+        mainWindow.webContents.on('did-finish-load', () => {
+            console.log('✅ Page loaded successfully');
+        });
+        
+        mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+            console.error('❌ Page failed to load:', errorCode, errorDescription);
+        });
     }).catch((err) => {
         console.error('Failed to start backend:', err);
         app.quit();
@@ -113,11 +126,6 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
-
-    // Open DevTools in development
-    if (process.env.NODE_ENV === 'development') {
-        mainWindow.webContents.openDevTools();
-    }
 }
 
 async function startBackend() {
@@ -347,7 +355,9 @@ function createMenu() {
     Menu.setApplicationMenu(menu);
 }
 
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+    createWindow();
+});
 
 app.on('window-all-closed', () => {
     // Stop backend

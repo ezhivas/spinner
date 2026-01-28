@@ -7,7 +7,21 @@ import {
 } from 'typeorm';
 import { RequestEntity } from '../requests/request.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
-import { JsonColumn } from '../common/decorators/json-column.decorator';
+
+const jsonTransformer = {
+  to: (value: any) => {
+    if (value === null || value === undefined) return null;
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  },
+  from: (value: string) => {
+    if (!value) return null;
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      return value;
+    }
+  },
+};
 
 @Entity('request_runs')
 export class RequestRunEntity {
@@ -25,15 +39,15 @@ export class RequestRunEntity {
   environment?: EnvironmentEntity;
 
   @Column()
-  status: 'PENDING' | 'SUCCESS' | 'ERROR';
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'ERROR' | 'CANCELLED';
 
   @Column({ nullable: true })
   responseStatus?: number;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
   responseHeaders?: any;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
   responseBody?: any;
 
   @Column({ nullable: true })

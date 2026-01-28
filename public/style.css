@@ -1,6 +1,0 @@
-/* Скроллбар для красоты */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #1a1b1e; }
-::-webkit-scrollbar-thumb { background: #373a40; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #5c5f66; }
-pre { white-space: pre-wrap; word-wrap: break-word; }

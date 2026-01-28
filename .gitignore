@@ -2,6 +2,7 @@
 /dist
 /node_modules
 /build
+/AI_docs
 
 # Logs
 logs

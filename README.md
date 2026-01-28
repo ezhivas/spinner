@@ -157,7 +157,7 @@ SpinneR supports two distinct modes optimized for different use cases:
 | **Offline** | ❌ Needs services | ✅ Fully offline |
 | **Setup Time** | ~30 sec | ~10 sec |
 
-See [DUAL-MODE-GUIDE.md](./DUAL-MODE-GUIDE.md) for detailed comparison.
+See [DUAL-MODE-GUIDE.md](AI_docs/DUAL-MODE-GUIDE.md) for detailed comparison.
 
 ## 📁 Project Structure
 
@@ -370,7 +370,7 @@ For detailed security information, see [SECURITY.md](AI_docs/SECURITY.md)
 
 Additional documentation files:
 
-- [DUAL-MODE-GUIDE.md](./DUAL-MODE-GUIDE.md) - Comprehensive dual-mode development guide
+- [DUAL-MODE-GUIDE.md](AI_docs/DUAL-MODE-GUIDE.md) - Comprehensive dual-mode development guide
 - [ELECTRON-README.md](./ELECTRON-README.md) - Electron implementation details
 - [BUILD-GUIDE.md](AI_docs/BUILD-GUIDE.md) - Building desktop applications
 - [POST-REQUEST-SCRIPTS-GUIDE.md](AI_docs/POST-REQUEST-SCRIPTS-GUIDE.md) - Script automation guide

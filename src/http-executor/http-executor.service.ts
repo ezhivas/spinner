@@ -18,20 +18,27 @@ export class HttpExecutorService {
   async execute(config: AxiosRequestConfig): Promise<ExecutionResult> {
     const start = Date.now();
 
-    // Set default timeout if not provided
+    // Set default timeout if not provided (10 seconds)
     if (!config.timeout) {
       config.timeout =
-        this.configService.get<number>('REQUEST_TIMEOUT') || 60000;
+        this.configService.get<number>('REQUEST_TIMEOUT') || 10000;
     }
+
+    // Accept all HTTP status codes as valid (don't throw on 4xx/5xx)
+    config.validateStatus = () => true;
 
     try {
       const response: AxiosResponse = await axios(config);
 
+      // Determine success based on status code
+      const isSuccess = response.status >= 200 && response.status < 400;
+
       return {
-        status: 'SUCCESS',
+        status: isSuccess ? 'SUCCESS' : 'ERROR',
         responseStatus: response.status,
         responseHeaders: response.headers as Record<string, unknown>,
         responseBody: response.data as unknown,
+        error: isSuccess ? undefined : `HTTP ${response.status}`,
         durationMs: Date.now() - start,
       };
     } catch (error) {

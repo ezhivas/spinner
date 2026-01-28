@@ -20,6 +20,22 @@ cp .env.electron .env
 echo "📁 Creating data directory..."
 mkdir -p ./data
 
+# Build React frontend
+echo "🎨 Building React frontend..."
+cd packages/frontend
+npm run build
+
+if [ $? -ne 0 ]; then
+    echo "❌ Frontend build failed"
+    exit 1
+fi
+
+# Copy built frontend to public directory
+echo "📦 Copying frontend build to public..."
+cd ../..
+rm -rf public/*
+cp -r packages/frontend/dist/* public/
+
 # Build backend
 echo "🔨 Building backend..."
 npm run build
