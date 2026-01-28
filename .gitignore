@@ -3,6 +3,7 @@
 /node_modules
 /build
 /AI_docs
+/data
 
 # Logs
 logs
