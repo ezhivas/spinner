@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   test:
@@ -149,5 +149,5 @@ jobs:
         run: |
           docker compose up -d
           sleep 10
-          curl -f http://localhost:3000 || exit 1
+          curl -f http://localhost:3000/api || exit 1
           docker compose down
