@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RequestRunEntity } from './request-run.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
-import { Queue } from 'bullmq';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
 import { VariableResolverService } from '../environments/variable-resolver.service';
 import { PostRequestScriptService } from '../requests/post-request-script.service';
@@ -25,7 +24,7 @@ export class RunsService {
     private readonly envRepo: Repository<EnvironmentEntity>,
 
     @Inject('RUNS_QUEUE')
-    private readonly queue: Queue | null,
+    private readonly queue: any,
 
     @Inject('IS_ELECTRON')
     private readonly isElectron: boolean,

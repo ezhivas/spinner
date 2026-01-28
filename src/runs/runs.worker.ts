@@ -1,4 +1,3 @@
-import { Worker, Job } from 'bullmq';
 import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
 import { HttpExecutorService } from '../http-executor/http-executor.service';
@@ -6,7 +5,7 @@ import { VariableResolverService } from '../environments/variable-resolver.servi
 import { PostRequestScriptService } from '../requests/post-request-script.service';
 import { RequestRunEntity } from './request-run.entity';
 
-export function startRunsWorker(
+export async function startRunsWorker(
   dataSource: DataSource,
   httpExecutor: HttpExecutorService,
   variableResolver: VariableResolverService,
@@ -26,6 +25,10 @@ export function startRunsWorker(
   }
 
   logger.log('Initializing runs worker (Docker mode)');
+
+  // Dynamic import to avoid loading BullMQ in Electron mode
+  const { Worker } = await import('bullmq');
+  type Job = import('bullmq').Job;
 
   const bullConnection = {
     host: process.env.REDIS_HOST || 'localhost',

@@ -113,13 +113,6 @@ export const CollectionItem = ({ collection, onEdit }: CollectionItemProps) => {
           )}
         </span>
 
-        <span className="flex-1 text-sm text-gray-900 truncate">
-          {collection.name}
-          {requests.length > 0 && (
-            <span className="ml-2 text-xs text-gray-500">({requests.length})</span>
-          )}
-        </span>
-
         {/* Menu Button */}
         <div className="relative">
           <button

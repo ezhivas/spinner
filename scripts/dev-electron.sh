@@ -47,7 +47,7 @@ fi
 
 # Start backend in background
 echo "🚀 Starting backend..."
-npm run start:prod &
+DB_TYPE=sqlite REDIS_ENABLED=false npm run start:prod &
 BACKEND_PID=$!
 
 # Function to cleanup on exit

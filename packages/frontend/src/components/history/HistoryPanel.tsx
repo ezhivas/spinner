@@ -85,21 +85,24 @@ export const HistoryPanel = () => {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">History</h2>
-          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-            {filteredRuns.length}
-          </span>
+      <div className="p-3 border-b border-gray-200 space-y-3">
+        {/* Title Row */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Clock className="w-5 h-5 text-gray-600 flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 truncate">History</h2>
+            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full flex-shrink-0">
+              {filteredRuns.length}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Filters */}
-          <div className="flex items-center gap-1 border border-gray-300 rounded-md overflow-hidden">
+        {/* Filters Row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 border border-gray-300 rounded-md overflow-hidden flex-shrink-0">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 text-sm ${
+              className={`px-2.5 py-1 text-xs font-medium ${
                 filter === 'all' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -107,7 +110,7 @@ export const HistoryPanel = () => {
             </button>
             <button
               onClick={() => setFilter('success')}
-              className={`px-3 py-1 text-sm ${
+              className={`px-2.5 py-1 text-xs font-medium ${
                 filter === 'success' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -115,7 +118,7 @@ export const HistoryPanel = () => {
             </button>
             <button
               onClick={() => setFilter('failed')}
-              className={`px-3 py-1 text-sm ${
+              className={`px-2.5 py-1 text-xs font-medium ${
                 filter === 'failed' ? 'bg-red-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -124,29 +127,31 @@ export const HistoryPanel = () => {
           </div>
 
           {/* Actions */}
-          <button
-            onClick={fetchRuns}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setShowCleanupModal(true)}
-            className="p-2 text-orange-600 hover:bg-orange-50 rounded transition-colors"
-            title="Cleanup Old Runs"
-            disabled={runs.length === 0}
-          >
-            <Clock className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleClearHistory}
-            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Clear All History"
-            disabled={runs.length === 0}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={fetchRuns}
+              className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="Refresh"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowCleanupModal(true)}
+              className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+              title="Cleanup Old Runs"
+              disabled={runs.length === 0}
+            >
+              <Clock className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleClearHistory}
+              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="Clear All History"
+              disabled={runs.length === 0}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -163,68 +168,63 @@ export const HistoryPanel = () => {
             {filteredRuns.map((run) => (
               <div
                 key={run.id}
-                className="group p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                className="group p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => setSelectedRun(run)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    {/* Request Info */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs font-semibold text-gray-600">
-                        {run.request?.method || 'GET'}
-                      </span>
-                      <span className="text-sm text-gray-900 truncate">
-                        {run.request?.url || 'Unknown URL'}
-                      </span>
-                    </div>
-
-                    {/* Request Name */}
-                    {run.request?.name && (
-                      <div className="text-sm text-gray-600 mb-2">{run.request.name}</div>
-                    )}
-
-                    {/* Status & Time */}
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className={`px-2 py-1 rounded-md font-medium ${getStatusColor(run)}`}>
-                        {run.responseStatus || run.status}
-                      </span>
-                      {run.durationMs && (
-                        <span className="text-gray-500">{run.durationMs}ms</span>
-                      )}
-                      <span className="text-gray-400">{formatDate(run.createdAt.toString())}</span>
-                    </div>
-
-                    {/* Error */}
-                    {run.error && (
-                      <div className="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-                        {run.error}
-                      </div>
-                    )}
+                <div className="flex flex-col gap-2">
+                  {/* Request Info */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-xs font-semibold text-gray-600 flex-shrink-0">
+                      {run.request?.method || 'GET'}
+                    </span>
+                    <span className="text-sm text-gray-900 truncate flex-1 min-w-0">
+                      {run.request?.url || 'Unknown URL'}
+                    </span>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-1">
-                    {/* View Button */}
-                    <button
-                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedRun(run);
-                      }}
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                  {/* Request Name */}
+                  {run.request?.name && (
+                    <div className="text-sm text-gray-600 truncate">{run.request.name}</div>
+                  )}
 
-                    {/* Delete Button */}
-                    <button
-                      className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                      onClick={(e) => handleDeleteRun(e, run)}
-                      title="Delete Run"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  {/* Status & Time */}
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className={`px-2 py-1 rounded-md font-medium flex-shrink-0 ${getStatusColor(run)}`}>
+                      {run.responseStatus || run.status}
+                    </span>
+                    {run.durationMs && (
+                      <span className="text-gray-500 flex-shrink-0">{run.durationMs}ms</span>
+                    )}
+                    <span className="text-gray-400 flex-shrink-0">{formatDate(run.createdAt.toString())}</span>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                      <button
+                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRun(run);
+                        }}
+                        title="View Details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                        onClick={(e) => handleDeleteRun(e, run)}
+                        title="Delete Run"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Error */}
+                  {run.error && (
+                    <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded break-words">
+                      {run.error}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

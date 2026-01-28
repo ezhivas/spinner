@@ -71,7 +71,7 @@ async function bootstrap() {
     const httpExecutor = app.get(HttpExecutorService);
     const variableResolver = app.get(VariableResolverService);
     const postRequestScriptService = app.get(PostRequestScriptService);
-    startRunsWorker(
+    await startRunsWorker(
       dataSource,
       httpExecutor,
       variableResolver,
