@@ -123,7 +123,8 @@ export const RequestEditor = ({ requestId, initialCollectionId, onSave }: Reques
       request.body !== originalRequest.body ||
       request.preRequestScript !== originalRequest.preRequestScript ||
       request.postRequestScript !== originalRequest.postRequestScript ||
-      request.collectionId !== originalRequest.collectionId
+      request.collectionId !== originalRequest.collectionId ||
+      JSON.stringify(request.auth) !== JSON.stringify(originalRequest.auth)
     ) {
       return true;
     }
@@ -282,6 +283,7 @@ export const RequestEditor = ({ requestId, initialCollectionId, onSave }: Reques
               bodyType={bodyType}
               preRequestScript={request.preRequestScript || ''}
               postRequestScript={request.postRequestScript || ''}
+              auth={request.auth}
               onQueryParamsChange={setQueryParams}
               onHeadersChange={setHeaders}
               onBodyChange={(body) => setRequest({ ...request, body })}
@@ -292,6 +294,7 @@ export const RequestEditor = ({ requestId, initialCollectionId, onSave }: Reques
               onPostRequestScriptChange={(script) =>
                 setRequest({ ...request, postRequestScript: script })
               }
+              onAuthChange={(auth) => setRequest({ ...request, auth })}
             />
           </div>
         }

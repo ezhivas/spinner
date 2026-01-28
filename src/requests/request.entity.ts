@@ -72,6 +72,15 @@ export class RequestEntity {
   @Column({ type: 'text', nullable: true })
   postRequestScript?: string;
 
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+  auth?: {
+    type: 'noauth' | 'bearer' | 'basic' | 'apikey' | 'oauth2';
+    bearer?: { token: string };
+    basic?: { username: string; password: string };
+    apikey?: { key: string; value: string; addTo: 'header' | 'query' };
+    oauth2?: { accessToken: string };
+  };
+
   @CreateDateColumn()
   createdAt: Date;
 }

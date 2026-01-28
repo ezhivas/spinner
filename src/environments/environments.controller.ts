@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Patch,
+  Put,
   Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -37,6 +38,15 @@ export class EnvironmentsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update environment' })
   update(@Param('id') id: number, @Body() dto: Partial<CreateEnvironmentDto>) {
+    return this.service.update(+id, dto);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update environment (PUT)' })
+  updatePut(
+    @Param('id') id: number,
+    @Body() dto: Partial<CreateEnvironmentDto>,
+  ) {
     return this.service.update(+id, dto);
   }
 

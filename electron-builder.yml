@@ -49,14 +49,14 @@ mac:
         - x64
         - arm64
   category: public.app-category.developer-tools
-  # icon: build/icon.icns  # Commented out until icon is created
+  icon: build/icon.icns
   hardenedRuntime: false # Set to true when you have Apple Developer ID
   gatekeeperAssess: false
 
 # DMG configuration
 dmg:
   title: ${productName} ${version}
-  # icon: build/icon.icns  # Commented out until icon is created
+  icon: build/icon.icns
   contents:
     - x: 130
       y: 220

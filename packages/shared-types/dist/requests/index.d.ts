@@ -11,6 +11,25 @@ export declare class CreateRequestDto {
     body?: any;
     bodyType?: BodyType;
     postRequestScript?: string;
+    preRequestScript?: string;
+    auth?: {
+        type: 'noauth' | 'bearer' | 'basic' | 'apikey' | 'oauth2';
+        bearer?: {
+            token: string;
+        };
+        basic?: {
+            username: string;
+            password: string;
+        };
+        apikey?: {
+            key: string;
+            value: string;
+            addTo: 'header' | 'query';
+        };
+        oauth2?: {
+            accessToken: string;
+        };
+    };
     collectionId?: number;
 }
 /**
@@ -19,6 +38,24 @@ export declare class CreateRequestDto {
 export declare class UpdateRequestDto {
     name?: string;
     method?: HttpMethod;
+    auth?: {
+        type: 'noauth' | 'bearer' | 'basic' | 'apikey' | 'oauth2';
+        bearer?: {
+            token: string;
+        };
+        basic?: {
+            username: string;
+            password: string;
+        };
+        apikey?: {
+            key: string;
+            value: string;
+            addTo: 'header' | 'query';
+        };
+        oauth2?: {
+            accessToken: string;
+        };
+    };
     url?: string;
     headers?: Record<string, string>;
     queryParams?: Record<string, string>;
@@ -40,7 +77,26 @@ export interface IRequest {
     body?: any;
     bodyType?: BodyType;
     collectionId?: number;
+    preRequestScript?: string;
     postRequestScript?: string;
+    auth?: {
+        type: 'noauth' | 'bearer' | 'basic' | 'apikey' | 'oauth2';
+        bearer?: {
+            token: string;
+        };
+        basic?: {
+            username: string;
+            password: string;
+        };
+        apikey?: {
+            key: string;
+            value: string;
+            addTo: 'header' | 'query';
+        };
+        oauth2?: {
+            accessToken: string;
+        };
+    };
     createdAt: Date;
 }
 //# sourceMappingURL=index.d.ts.map

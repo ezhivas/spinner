@@ -64,19 +64,38 @@ export class RequestsService {
   }
 
   async update(id: number, dto: UpdateRequestDto) {
+    console.log(`[RequestsService] Starting update for request ${id}`);
+    console.log(
+      `[RequestsService] DTO received:`,
+      JSON.stringify(dto, null, 2),
+    );
+
     // Validate post-request script if provided
     if (dto.postRequestScript) {
       try {
+        console.log(`[RequestsService] Validating post-request script`);
         this.scriptService['validateScript'](dto.postRequestScript);
       } catch (error) {
+        console.error(
+          `[RequestsService] Script validation failed:`,
+          error.message,
+        );
         throw new BadRequestException(error.message);
       }
     }
 
+    console.log(`[RequestsService] Finding request ${id}`);
     const request = await this.findOne(id);
+    console.log(`[RequestsService] Request found, applying updates`);
+    console.log(`[RequestsService] Auth from DTO:`, (dto as any).auth);
+
     const { collectionId, ...data } = dto;
+    console.log(`[RequestsService] Data to assign (after spreading):`, data);
     Object.assign(request, data);
+    console.log(`[RequestsService] Request.auth after assign:`, request.auth);
+
     if (collectionId !== undefined) {
+      console.log(`[RequestsService] Updating collection reference`);
       if (collectionId) {
         const collection = await this.repo.manager.findOne(CollectionEntity, {
           where: { id: collectionId },
@@ -88,7 +107,12 @@ export class RequestsService {
         request.collection = null;
       }
     }
-    return this.repo.save(request);
+
+    console.log(`[RequestsService] Saving request to database`);
+    const result = await this.repo.save(request);
+    console.log(`[RequestsService] Request ${id} updated successfully`);
+    console.log(`[RequestsService] Result.auth after save:`, result.auth);
+    return result;
   }
 
   async remove(id: number) {

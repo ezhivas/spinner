@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsString,
   IsNumber,
+  IsObject,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { HttpMethod } from '../request.entity';
@@ -52,6 +53,17 @@ export class CreateRequestDto {
   @IsString()
   @Transform(({ value }) => (value === '' ? undefined : value))
   postRequestScript?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  auth?: {
+    type: 'noauth' | 'bearer' | 'basic' | 'apikey' | 'oauth2';
+    bearer?: { token: string };
+    basic?: { username: string; password: string };
+    apikey?: { key: string; value: string; addTo: 'header' | 'query' };
+    oauth2?: { accessToken: string };
+  };
 
   @ApiProperty({ required: false })
   @IsOptional()

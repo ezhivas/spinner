@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { CodeEditor } from './CodeEditor';
+import { AuthTab, type AuthConfig } from './AuthTab';
 
 interface KeyValuePair {
   key: string;
@@ -15,12 +16,14 @@ interface RequestTabsProps {
   bodyType: 'json' | 'text' | 'none';
   preRequestScript: string;
   postRequestScript: string;
+  auth?: AuthConfig;
   onQueryParamsChange: (params: KeyValuePair[]) => void;
   onHeadersChange: (headers: KeyValuePair[]) => void;
   onBodyChange: (body: string) => void;
   onBodyTypeChange: (type: 'json' | 'text' | 'none') => void;
   onPreRequestScriptChange: (script: string) => void;
   onPostRequestScriptChange: (script: string) => void;
+  onAuthChange: (auth: AuthConfig) => void;
 }
 
 /**
@@ -33,18 +36,21 @@ export const RequestTabs = ({
   bodyType,
   preRequestScript,
   postRequestScript,
+  auth,
   onQueryParamsChange,
   onHeadersChange,
   onBodyChange,
   onBodyTypeChange,
   onPreRequestScriptChange,
   onPostRequestScriptChange,
+  onAuthChange,
 }: RequestTabsProps) => {
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'scripts'>('params');
+  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'auth' | 'body' | 'scripts'>('params');
 
   const tabs = [
     { id: 'params', label: 'Query Params', count: queryParams.filter(p => p.enabled).length },
     { id: 'headers', label: 'Headers', count: headers.filter(h => h.enabled).length },
+    { id: 'auth', label: 'Authorization' },
     { id: 'body', label: 'Body' },
     { id: 'scripts', label: 'Scripts' },
   ] as const;
@@ -94,6 +100,10 @@ export const RequestTabs = ({
             onChange={onHeadersChange}
             placeholder={{ key: 'Header-Name', value: 'value' }}
           />
+        )}
+
+        {activeTab === 'auth' && (
+          <AuthTab auth={auth} onChange={onAuthChange} />
         )}
 
         {activeTab === 'body' && (

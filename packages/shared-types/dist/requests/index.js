@@ -55,6 +55,16 @@ __decorate([
 ], CreateRequestDto.prototype, "postRequestScript", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateRequestDto.prototype, "preRequestScript", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsObject)(),
+    __metadata("design:type", Object)
+], CreateRequestDto.prototype, "auth", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateRequestDto.prototype, "collectionId", void 0);
@@ -74,6 +84,11 @@ __decorate([
     (0, class_validator_1.IsEnum)(enums_1.HttpMethod),
     __metadata("design:type", String)
 ], UpdateRequestDto.prototype, "method", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsObject)(),
+    __metadata("design:type", Object)
+], UpdateRequestDto.prototype, "auth", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

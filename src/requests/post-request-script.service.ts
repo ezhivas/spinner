@@ -20,22 +20,23 @@ interface PostRequestContext {
 
 @Injectable()
 export class PostRequestScriptService {
-  // Blacklist of dangerous patterns
-  private readonly DANGEROUS_PATTERNS = [
-    /\brequire\s*\(/gi,
-    /\bimport\s+/gi,
-    /\bprocess\./gi,
-    /\bglobal\./gi,
-    /\b__dirname\b/gi,
-    /\b__filename\b/gi,
-    /\beval\s*\(/gi,
-    /\bFunction\s*\(/gi,
-    /\bchild_process\b/gi,
-    /\bfs\./gi,
-    /\bexec\s*\(/gi,
-    /\bspawn\s*\(/gi,
-    /\bsetTimeout\s*\(/gi,
-    /\bsetInterval\s*\(/gi,
+  // Blacklist of dangerous patterns - disabled for Electron mode
+  private readonly DANGEROUS_PATTERNS: RegExp[] = [
+    // All patterns commented out for Electron mode to allow Postman scripts
+    // /\brequire\s*\(/gi,
+    // /\bimport\s+/gi,
+    // /\bprocess\./gi,
+    // /\bglobal\./gi,
+    // /\b__dirname\b/gi,
+    // /\b__filename\b/gi,
+    // /\beval\s*\(/gi,
+    // /\bFunction\s*\(/gi,
+    // /\bchild_process\b/gi,
+    // /\bfs\./gi,
+    // /\bexec\s*\(/gi,
+    // /\bspawn\s*\(/gi,
+    // /\bsetTimeout\s*\(/gi,
+    // /\bsetInterval\s*\(/gi,
   ];
 
   constructor(

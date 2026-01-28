@@ -13,7 +13,11 @@ export const Workspace = () => {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
         <div className="text-center text-gray-500">
-          <div className="text-6xl mb-4">🚀</div>
+          <img 
+            src="/favicon.png" 
+            alt="SpinneR" 
+            className="w-32 h-32 mx-auto mb-4"
+          />
           <h3 className="text-xl font-semibold mb-2">Welcome to SpinneR</h3>
           <p className="text-sm">Create or select a request to get started</p>
         </div>

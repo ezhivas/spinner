@@ -61,6 +61,8 @@ export class BackupService {
           headers: r.headers,
           queryParams: r.queryParams,
           body: r.body,
+          preRequestScript: r.preRequestScript,
+          postRequestScript: r.postRequestScript,
           collectionId: r.collectionId,
           createdAt: r.createdAt,
         })),
@@ -154,6 +156,8 @@ export class BackupService {
             headers: reqData.headers,
             queryParams: reqData.queryParams,
             body: reqData.body,
+            preRequestScript: reqData.preRequestScript,
+            postRequestScript: reqData.postRequestScript,
             collectionId: newCollectionId,
           });
           const saved = await this.requestRepo.save(request);

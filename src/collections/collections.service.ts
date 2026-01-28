@@ -13,6 +13,49 @@ export class CollectionsService {
     private readonly requestsService: RequestsService,
   ) {}
 
+  /**
+   * Sanitize imported scripts by removing dangerous patterns
+   */
+  private sanitizeScript(script: string | undefined): string | undefined {
+    if (!script) return undefined;
+
+    let sanitized = script;
+    let modified = false;
+
+    // List of dangerous patterns to remove (matching the validation patterns)
+    const dangerousPatterns = [
+      { pattern: /\brequire\s*\(/gi, name: 'require()' },
+      { pattern: /\bimport\s+/gi, name: 'import' },
+      { pattern: /\bprocess\./gi, name: 'process.' },
+      { pattern: /\bglobal\./gi, name: 'global.' },
+      { pattern: /\b__dirname\b/gi, name: '__dirname' },
+      { pattern: /\b__filename\b/gi, name: '__filename' },
+      { pattern: /\beval\s*\(/gi, name: 'eval()' },
+      { pattern: /\bFunction\s*\(/gi, name: 'Function()' },
+      { pattern: /\bchild_process\b/gi, name: 'child_process' },
+      { pattern: /\bfs\./gi, name: 'fs.' },
+      { pattern: /\bexec\s*\(/gi, name: 'exec()' },
+      { pattern: /\bspawn\s*\(/gi, name: 'spawn()' },
+    ];
+
+    // Remove each dangerous pattern
+    for (const { pattern, name } of dangerousPatterns) {
+      if (pattern.test(sanitized)) {
+        sanitized = sanitized.replace(pattern, `/* ${name} removed */`);
+        modified = true;
+      }
+    }
+
+    // Add a comment at the top if modifications were made
+    if (modified) {
+      sanitized =
+        '// Note: Dangerous patterns have been removed for security\n' +
+        sanitized;
+    }
+
+    return sanitized;
+  }
+
   async create(dto: CreateCollectionDto): Promise<CollectionEntity> {
     const collection = this.collectionRepo.create(dto);
     return this.collectionRepo.save(collection);
@@ -93,6 +136,27 @@ export class CollectionsService {
           }
           // Other modes like file, graphql can be handled later
         }
+
+        // Extract pre-request and post-request scripts
+        let preRequestScript: string | undefined;
+        let postRequestScript: string | undefined;
+
+        if (item.event && Array.isArray(item.event)) {
+          for (const event of item.event) {
+            if (event.listen === 'prerequest' && event.script) {
+              const scriptLines = Array.isArray(event.script.exec)
+                ? event.script.exec
+                : [event.script.exec];
+              preRequestScript = scriptLines.join('\n');
+            } else if (event.listen === 'test' && event.script) {
+              const scriptLines = Array.isArray(event.script.exec)
+                ? event.script.exec
+                : [event.script.exec];
+              postRequestScript = scriptLines.join('\n');
+            }
+          }
+        }
+
         requests.push({
           name: item.name,
           method: req.method,
@@ -108,6 +172,8 @@ export class CollectionsService {
               {},
             ) || {},
           body,
+          preRequestScript,
+          postRequestScript,
         });
       } else if (item.item) {
         // It's a folder, recurse
@@ -118,31 +184,66 @@ export class CollectionsService {
   }
 
   async exportToPostman(collection: CollectionEntity): Promise<any> {
-    const items = collection.requests.map((req) => ({
-      name: req.name,
-      request: {
-        method: req.method,
-        header: Object.entries(req.headers || {}).map(([key, value]) => ({
-          key,
-          value,
-        })),
-        url: {
-          raw: req.url,
-          host: ['{{baseUrl}}'], // Placeholder
-          path: req.url.split('/').filter((p) => p),
-          query: Object.entries(req.queryParams || {}).map(([key, value]) => ({
+    const items = collection.requests.map((req) => {
+      const events: Array<{
+        listen: string;
+        script: {
+          exec: string[];
+          type: string;
+        };
+      }> = [];
+
+      // Add pre-request script if exists
+      if (req.preRequestScript) {
+        events.push({
+          listen: 'prerequest',
+          script: {
+            exec: req.preRequestScript.split('\n'),
+            type: 'text/javascript',
+          },
+        });
+      }
+
+      // Add post-request (test) script if exists
+      if (req.postRequestScript) {
+        events.push({
+          listen: 'test',
+          script: {
+            exec: req.postRequestScript.split('\n'),
+            type: 'text/javascript',
+          },
+        });
+      }
+
+      return {
+        name: req.name,
+        event: events.length > 0 ? events : undefined,
+        request: {
+          method: req.method,
+          header: Object.entries(req.headers || {}).map(([key, value]) => ({
             key,
             value,
           })),
+          url: {
+            raw: req.url,
+            host: ['{{baseUrl}}'], // Placeholder
+            path: req.url.split('/').filter((p) => p),
+            query: Object.entries(req.queryParams || {}).map(
+              ([key, value]) => ({
+                key,
+                value,
+              }),
+            ),
+          },
+          body: req.body
+            ? {
+                mode: 'raw',
+                raw: req.body,
+              }
+            : undefined,
         },
-        body: req.body
-          ? {
-              mode: 'raw',
-              raw: req.body,
-            }
-          : undefined,
-      },
-    }));
+      };
+    });
 
     return {
       info: {

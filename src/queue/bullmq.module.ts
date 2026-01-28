@@ -15,7 +15,14 @@ let isElectron = false;
     },
     {
       provide: 'IS_ELECTRON',
-      useFactory: () => isElectron,
+      useFactory: () => {
+        // Return the current value of isElectron
+        // This is evaluated at injection time, not module init time
+        return (
+          process.env.REDIS_ENABLED === 'false' ||
+          process.env.DB_TYPE === 'sqlite'
+        );
+      },
     },
   ],
   exports: ['RUNS_QUEUE', 'IS_ELECTRON'],
