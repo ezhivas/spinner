@@ -17,8 +17,8 @@ interface EnvironmentsStore {
   createEnvironment: (name: string, variables?: Record<string, string>) => Promise<IEnvironment>;
   updateEnvironment: (id: number, name?: string, variables?: Record<string, string>) => Promise<void>;
   deleteEnvironment: (id: number) => Promise<void>;
-  importEnvironment: (data: any) => Promise<IEnvironment>;
-  exportEnvironment: (id: number) => Promise<any>;
+  importEnvironment: (data: Record<string, unknown>) => Promise<IEnvironment>;
+  exportEnvironment: (id: number) => Promise<Record<string, unknown>>;
   setActiveEnvironment: (id: number | null) => void;
   getActiveEnvironment: () => IEnvironment | null;
   resolveVariables: (text: string) => string;

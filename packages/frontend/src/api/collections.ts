@@ -43,14 +43,14 @@ export const collectionsApi = {
   /**
    * Импортировать коллекцию
    */
-  import: async (data: any): Promise<ICollection> => {
+  import: async (data: Record<string, unknown>): Promise<ICollection> => {
     return apiClient.post<ICollection>('/api/collections/import', data);
   },
 
   /**
    * Экспортировать коллекцию
    */
-  export: async (id: number): Promise<any> => {
-    return apiClient.get<any>(`/api/collections/${id}/export`);
+  export: async (id: number): Promise<Record<string, unknown>> => {
+    return apiClient.get<Record<string, unknown>>(`/api/collections/${id}/export`);
   },
 };

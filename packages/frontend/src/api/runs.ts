@@ -23,7 +23,11 @@ export const runsApi = {
    * Создать новый запуск (выполнить запрос)
    */
   create: async (data: CreateRunDto): Promise<IRun> => {
-    return apiClient.post<IRun>('/api/runs', data);
+    const { requestId, environmentId } = data;
+    const url = environmentId 
+      ? `/api/runs/requests/${requestId}/run?environmentId=${environmentId}`
+      : `/api/runs/requests/${requestId}/run`;
+    return apiClient.post<IRun>(url, {});
   },
 
   /**
@@ -38,5 +42,19 @@ export const runsApi = {
    */
   delete: async (id: number): Promise<void> => {
     return apiClient.delete<void>(`/api/runs/${id}`);
+  },
+
+  /**
+   * Отменить выполняющийся запрос
+   */
+  cancel: async (id: number): Promise<{ cancelled: boolean; message: string }> => {
+    return apiClient.post(`/api/runs/${id}/cancel`, {});
+  },
+
+  /**
+   * Удалить записи старше указанного количества часов
+   */
+  cleanup: async (hours: number): Promise<{ deleted: number; cutoffDate: string; hoursKept: number }> => {
+    return apiClient.delete(`/api/runs/cleanup?hours=${hours}`);
   },
 };

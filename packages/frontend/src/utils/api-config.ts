@@ -1,3 +1,5 @@
+import { logger } from './logger';
+
 /**
  * Утилита для определения режима работы и получения API URL
  */
@@ -19,7 +21,7 @@ export const getApiBaseUrl = async (): Promise<string> => {
       const port = await window.electron!.getBackendPort();
       return `http://localhost:${port}`;
     } catch (error) {
-      console.error('Failed to get backend port:', error);
+      logger.error('Failed to get backend port', error);
       // Fallback на стандартный порт
       return 'http://localhost:3000';
     }

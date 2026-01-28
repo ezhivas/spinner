@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { IRun } from '@shared/runs';
+import { RunStatus } from '@shared/common/enums';
 import { runsApi } from '@/api';
 
 /**
@@ -16,8 +17,11 @@ interface RunsStore {
   fetchRunsByRequest: (requestId: number) => Promise<void>;
   createRun: (requestId: number, environmentId?: number) => Promise<IRun>;
   getRunById: (id: number) => Promise<IRun>;
+  pollRunUntilComplete: (runId: number, maxAttempts?: number) => Promise<IRun>;
+  cancelRun: (id: number) => Promise<void>;
   deleteRun: (id: number) => Promise<void>;
   clearHistory: () => Promise<void>;
+  cleanupOldRuns: (hours: number) => Promise<{ deleted: number }>;
   setCurrentRun: (run: IRun | null) => void;
 }
 
@@ -75,6 +79,37 @@ export const useRunsStore = create<RunsStore>((set, get) => ({
     }
   },
 
+  pollRunUntilComplete: async (runId: number, maxAttempts = 60) => {
+    const pollInterval = 500; // 500ms между попытками
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      try {
+        const run = await runsApi.getById(runId);
+        
+        // Обновляем currentRun в store
+        set({ currentRun: run });
+
+        // Проверяем, завершился ли запрос (SUCCESS, ERROR или CANCELLED)
+        if (run.status === RunStatus.SUCCESS || run.status === RunStatus.ERROR || run.status === RunStatus.CANCELLED) {
+          set({ loading: false });
+          return run;
+        }
+
+        // Ждем перед следующей попыткой
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        attempts++;
+      } catch (error) {
+        set({ error: (error as Error).message, loading: false });
+        throw error;
+      }
+    }
+
+    // Timeout - запрос не завершился за отведенное время
+    set({ loading: false, error: 'Request timeout' });
+    throw new Error('Request execution timeout');
+  },
+
   deleteRun: async (id: number) => {
     set({ loading: true, error: null });
     try {
@@ -97,6 +132,41 @@ export const useRunsStore = create<RunsStore>((set, get) => ({
       const { runs } = get();
       await Promise.all(runs.map((run) => runsApi.delete(run.id)));
       set({ runs: [], currentRun: null, loading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+      throw error;
+    }
+  },
+
+  cleanupOldRuns: async (hours: number) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await runsApi.cleanup(hours);
+      // Обновляем список после удаления
+      await get().fetchRuns();
+      set({ loading: false });
+      return { deleted: result.deleted };
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+      throw error;
+    }
+  },
+
+  cancelRun: async (id: number) => {
+    set({ loading: true, error: null });
+    try {
+      await runsApi.cancel(id);
+      // Обновляем статус в локальном списке
+      set((state) => ({
+        runs: state.runs.map((run) =>
+          run.id === id ? { ...run, status: 'CANCELLED' as RunStatus } : run
+        ),
+        currentRun:
+          state.currentRun?.id === id
+            ? { ...state.currentRun, status: 'CANCELLED' as RunStatus }
+            : state.currentRun,
+        loading: false,
+      }));
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;

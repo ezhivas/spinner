@@ -11,6 +11,9 @@ import { PostRequestScriptService } from '../requests/post-request-script.servic
 
 @Injectable()
 export class RunsService {
+  // Map для хранения AbortController'ов активных запросов
+  private activeRequests = new Map<number, AbortController>();
+
   constructor(
     @InjectRepository(RequestRunEntity)
     private readonly runRepo: Repository<RequestRunEntity>,
@@ -68,6 +71,9 @@ export class RunsService {
 
   // Synchronous execution for Electron mode
   private async executeRunSync(runId: number) {
+    const abortController = new AbortController();
+    this.activeRequests.set(runId, abortController);
+
     try {
       const run = await this.runRepo.findOne({
         where: { id: runId },
@@ -77,6 +83,9 @@ export class RunsService {
       if (!run) {
         throw new Error('Run not found');
       }
+
+      // Update status to RUNNING
+      await this.runRepo.update(runId, { status: 'RUNNING' });
 
       // Resolve variables if environment is provided
       const variables = run.environment?.variables || {};
@@ -97,13 +106,14 @@ export class RunsService {
         variables,
       );
 
-      // Build axios config
+      // Build axios config with AbortController signal
       const config = {
         method: run.request.method,
         url: resolvedUrl,
         headers: resolvedHeaders,
         params: resolvedQueryParams,
         data: resolvedBody,
+        signal: abortController.signal,
       };
 
       // Execute HTTP request
@@ -135,12 +145,24 @@ export class RunsService {
         error: result.error,
       });
     } catch (error: any) {
-      // Update run with error
-      await this.runRepo.update(runId, {
-        status: 'ERROR',
-        error: error.message || 'Unknown error',
-        durationMs: 0,
-      });
+      // Check if request was cancelled
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        await this.runRepo.update(runId, {
+          status: 'ERROR',
+          error: 'Request cancelled by user',
+          durationMs: 0,
+        });
+      } else {
+        // Update run with error
+        await this.runRepo.update(runId, {
+          status: 'ERROR',
+          error: error.message || 'Unknown error',
+          durationMs: 0,
+        });
+      }
+    } finally {
+      // Remove from active requests
+      this.activeRequests.delete(runId);
     }
   }
 
@@ -157,6 +179,54 @@ export class RunsService {
       where: { id },
       relations: ['request', 'environment'],
     });
+  }
+
+  async cancelRun(id: number) {
+    const run = await this.runRepo.findOneBy({ id });
+    if (!run) {
+      throw new Error('Run not found');
+    }
+
+    // Check if request is active
+    const abortController = this.activeRequests.get(id);
+    if (abortController) {
+      // Cancel the request
+      abortController.abort();
+      this.activeRequests.delete(id);
+
+      return {
+        cancelled: true,
+        message: 'Request cancelled successfully',
+      };
+    }
+
+    // If not in active requests, check if it's pending or running
+    if (run.status === 'PENDING' || run.status === 'RUNNING') {
+      // Update status to cancelled
+      await this.runRepo.update(id, {
+        status: 'ERROR',
+        error: 'Request cancelled by user',
+      });
+
+      return {
+        cancelled: true,
+        message: 'Request marked as cancelled',
+      };
+    }
+
+    return {
+      cancelled: false,
+      message: 'Request is not running or already completed',
+    };
+  }
+
+  async remove(id: number) {
+    const run = await this.runRepo.findOneBy({ id });
+    if (!run) {
+      throw new Error('Run not found');
+    }
+    await this.runRepo.remove(run);
+    return { deleted: true };
   }
 
   async deleteOlderThan(hours: number) {

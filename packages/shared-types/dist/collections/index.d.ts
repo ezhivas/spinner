@@ -20,6 +20,11 @@ export interface ICollection {
     name: string;
     description?: string;
     createdAt: Date;
-    requests?: any[];
+    requests?: Array<{
+        id: number;
+        name: string;
+        method: string;
+        url: string;
+    }>;
 }
 //# sourceMappingURL=index.d.ts.map

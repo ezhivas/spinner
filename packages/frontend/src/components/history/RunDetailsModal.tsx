@@ -1,6 +1,7 @@
 import { Modal } from '@/components/common';
 import { CodeEditor } from '@/components/requests/CodeEditor';
 import type { IRun } from '@shared/runs';
+import { RunStatus } from '@shared/common/enums';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface RunDetailsModalProps {
@@ -11,8 +12,8 @@ interface RunDetailsModalProps {
 export const RunDetailsModal = ({ run, onClose }: RunDetailsModalProps) => {
   const getStatusIcon = () => {
     if (run.error) return <XCircle className="w-6 h-6 text-red-600" />;
-    if (run.status === 'running') return <Clock className="w-6 h-6 text-blue-600 animate-spin" />;
-    if (run.status === 'completed') return <CheckCircle className="w-6 h-6 text-green-600" />;
+    if (run.status === RunStatus.RUNNING) return <Clock className="w-6 h-6 text-blue-600 animate-spin" />;
+    if (run.status === RunStatus.COMPLETED) return <CheckCircle className="w-6 h-6 text-green-600" />;
     return <AlertCircle className="w-6 h-6 text-yellow-600" />;
   };
 

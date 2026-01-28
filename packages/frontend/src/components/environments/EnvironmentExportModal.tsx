@@ -41,7 +41,7 @@ export const EnvironmentExportModal = ({ isOpen, onClose }: EnvironmentExportMod
 
       success(`Environment exported as ${filename}`);
       onClose();
-    } catch (err) {
+    } catch {
       showError('Failed to export environment');
     } finally {
       setLoading(false);

@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Clock, Filter, Trash2, RefreshCw, Eye } from 'lucide-react';
-import { useRunsStore } from '@/store';
+import { Clock, Trash2, RefreshCw, Eye, X } from 'lucide-react';
+import { useRunsStore, useToastStore } from '@/store';
 import { RunDetailsModal } from './RunDetailsModal';
+import { CleanupHistoryModal } from './CleanupHistoryModal';
+import { ConfirmDialog } from '@/components/common';
 import type { IRun } from '@shared/runs';
+import { RunStatus } from '@shared/common/enums';
 
 export const HistoryPanel = () => {
-  const { runs, loading, fetchRuns, clearHistory } = useRunsStore();
+  const { runs, loading, fetchRuns, clearHistory, deleteRun } = useRunsStore();
+  const { success, error: showError } = useToastStore();
   const [selectedRun, setSelectedRun] = useState<IRun | null>(null);
   const [filter, setFilter] = useState<'all' | 'success' | 'failed'>('all');
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [confirmDeleteRun, setConfirmDeleteRun] = useState<IRun | null>(null);
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
 
   useEffect(() => {
     fetchRuns();
@@ -15,14 +22,20 @@ export const HistoryPanel = () => {
 
   const filteredRuns = runs.filter((run) => {
     if (filter === 'all') return true;
-    if (filter === 'success') return run.status === 'completed' && !run.error;
-    if (filter === 'failed') return run.status === 'failed' || run.error;
+    if (filter === 'success') {
+      // Success: responseStatus существует и < 400 (200-399)
+      return run.responseStatus != null && run.responseStatus < 400;
+    }
+    if (filter === 'failed') {
+      // Failed: есть error ИЛИ responseStatus отсутствует ИЛИ responseStatus >= 400
+      return run.error != null || run.responseStatus == null || run.responseStatus >= 400;
+    }
     return true;
   });
 
   const getStatusColor = (run: IRun) => {
-    if (run.status === 'pending') return 'text-yellow-600 bg-yellow-50';
-    if (run.status === 'running') return 'text-blue-600 bg-blue-50';
+    if (run.status === RunStatus.PENDING) return 'text-yellow-600 bg-yellow-50';
+    if (run.status === RunStatus.RUNNING) return 'text-blue-600 bg-blue-50';
     if (run.error) return 'text-red-600 bg-red-50';
     if (run.responseStatus && run.responseStatus >= 400) return 'text-orange-600 bg-orange-50';
     return 'text-green-600 bg-green-50';
@@ -38,8 +51,26 @@ export const HistoryPanel = () => {
   };
 
   const handleClearHistory = () => {
-    if (confirm('Are you sure you want to clear all history?')) {
-      clearHistory();
+    setConfirmClearAll(true);
+  };
+
+  const handleConfirmClearAll = () => {
+    clearHistory();
+  };
+
+  const handleDeleteRun = async (e: React.MouseEvent, run: IRun) => {
+    e.stopPropagation(); // Предотвращаем открытие детального просмотра
+    setConfirmDeleteRun(run);
+  };
+
+  const handleConfirmDeleteRun = async () => {
+    if (!confirmDeleteRun) return;
+
+    try {
+      await deleteRun(confirmDeleteRun.id);
+      success('Run deleted');
+    } catch {
+      showError('Failed to delete run');
     }
   };
 
@@ -101,9 +132,17 @@ export const HistoryPanel = () => {
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
+            onClick={() => setShowCleanupModal(true)}
+            className="p-2 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+            title="Cleanup Old Runs"
+            disabled={runs.length === 0}
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+          <button
             onClick={handleClearHistory}
             className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Clear History"
+            title="Clear All History"
             disabled={runs.length === 0}
           >
             <Trash2 className="w-4 h-4" />
@@ -124,7 +163,7 @@ export const HistoryPanel = () => {
             {filteredRuns.map((run) => (
               <div
                 key={run.id}
-                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                className="group p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => setSelectedRun(run)}
               >
                 <div className="flex items-start justify-between">
@@ -149,10 +188,10 @@ export const HistoryPanel = () => {
                       <span className={`px-2 py-1 rounded-md font-medium ${getStatusColor(run)}`}>
                         {run.responseStatus || run.status}
                       </span>
-                      {run.duration && (
-                        <span className="text-gray-500">{run.duration}ms</span>
+                      {run.durationMs && (
+                        <span className="text-gray-500">{run.durationMs}ms</span>
                       )}
-                      <span className="text-gray-400">{formatDate(run.createdAt)}</span>
+                      <span className="text-gray-400">{formatDate(run.createdAt.toString())}</span>
                     </div>
 
                     {/* Error */}
@@ -163,17 +202,29 @@ export const HistoryPanel = () => {
                     )}
                   </div>
 
-                  {/* View Button */}
-                  <button
-                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedRun(run);
-                    }}
-                    title="View Details"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1">
+                    {/* View Button */}
+                    <button
+                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRun(run);
+                      }}
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                      onClick={(e) => handleDeleteRun(e, run)}
+                      title="Delete Run"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -188,6 +239,39 @@ export const HistoryPanel = () => {
           onClose={() => setSelectedRun(null)}
         />
       )}
+
+      {/* Cleanup Modal */}
+      <CleanupHistoryModal
+        isOpen={showCleanupModal}
+        onClose={() => setShowCleanupModal(false)}
+      />
+
+      {/* Диалоги подтверждения */}
+      <ConfirmDialog
+        isOpen={confirmClearAll}
+        onClose={() => setConfirmClearAll(false)}
+        onConfirm={() => {
+          handleConfirmClearAll();
+          setConfirmClearAll(false);
+        }}
+        title="Clear All History"
+        message="Are you sure you want to clear all history? This action cannot be undone."
+        confirmText="Clear All"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!confirmDeleteRun}
+        onClose={() => setConfirmDeleteRun(null)}
+        onConfirm={() => {
+          handleConfirmDeleteRun();
+          setConfirmDeleteRun(null);
+        }}
+        title="Delete Run"
+        message="Are you sure you want to delete this run?"
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 };

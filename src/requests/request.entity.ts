@@ -6,8 +6,22 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { CollectionEntity } from '../collections/collection.entity';
-import { JsonColumn } from '../common/decorators/json-column.decorator';
 import { EnumColumn } from '../common/decorators/enum-column.decorator';
+
+const jsonTransformer = {
+  to: (value: any) => {
+    if (value === null || value === undefined) return null;
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  },
+  from: (value: string) => {
+    if (!value) return null;
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      return value;
+    }
+  },
+};
 
 export enum HttpMethod {
   GET = 'GET',
@@ -31,13 +45,13 @@ export class RequestEntity {
   @Column()
   url: string;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
   headers: Record<string, string>;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
   queryParams: Record<string, string>;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
   body: any;
 
   @Column({ type: 'varchar', nullable: true, default: 'json' })

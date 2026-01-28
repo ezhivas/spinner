@@ -31,8 +31,9 @@ var BodyType;
  */
 var RunStatus;
 (function (RunStatus) {
-    RunStatus["PENDING"] = "pending";
-    RunStatus["RUNNING"] = "running";
-    RunStatus["COMPLETED"] = "completed";
-    RunStatus["FAILED"] = "failed";
+    RunStatus["PENDING"] = "PENDING";
+    RunStatus["RUNNING"] = "RUNNING";
+    RunStatus["SUCCESS"] = "SUCCESS";
+    RunStatus["ERROR"] = "ERROR";
+    RunStatus["CANCELLED"] = "CANCELLED";
 })(RunStatus || (exports.RunStatus = RunStatus = {}));

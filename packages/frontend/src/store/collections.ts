@@ -15,11 +15,11 @@ interface CollectionsStore {
   createCollection: (name: string, description?: string) => Promise<ICollection>;
   updateCollection: (id: number, name: string, description?: string) => Promise<void>;
   deleteCollection: (id: number) => Promise<void>;
-  importCollection: (data: any) => Promise<void>;
-  exportCollection: (id: number) => Promise<any>;
+  importCollection: (data: Record<string, unknown>) => Promise<void>;
+  exportCollection: (id: number) => Promise<Record<string, unknown>>;
 }
 
-export const useCollectionsStore = create<CollectionsStore>((set, get) => ({
+export const useCollectionsStore = create<CollectionsStore>()((set) => ({
   collections: [],
   loading: false,
   error: null,

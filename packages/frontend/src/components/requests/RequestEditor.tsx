@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { RequestForm } from './RequestForm';
 import { RequestTabs } from './RequestTabs';
 import { ResponseViewer } from './ResponseViewer';
+import { ResizableSplit } from '@/components/common';
 import { useRequestsStore, useRunsStore, useEnvironmentsStore, useToastStore } from '@/store';
 import type { IRequest } from '@shared/requests';
-import type { IRun } from '@shared/runs';
 import { HttpMethod } from '@shared/common/enums';
 
 interface KeyValuePair {
@@ -15,16 +15,17 @@ interface KeyValuePair {
 
 interface RequestEditorProps {
   requestId?: number;
+  initialCollectionId?: number;
   onSave?: (request: IRequest) => void;
 }
 
 /**
  * Главный компонент редактора запросов
  */
-export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
+export const RequestEditor = ({ requestId, initialCollectionId, onSave }: RequestEditorProps) => {
   const { getRequestById, createRequest, updateRequest } = useRequestsStore();
-  const { createRun, currentRun, setCurrentRun } = useRunsStore();
-  const { activeEnvironmentId, resolveVariables } = useEnvironmentsStore();
+  const { createRun, pollRunUntilComplete, cancelRun, currentRun, setCurrentRun } = useRunsStore();
+  const { activeEnvironmentId } = useEnvironmentsStore();
   const { success, error: showError } = useToastStore();
 
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,13 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
     body: '',
     preRequestScript: '',
     postRequestScript: '',
+    collectionId: initialCollectionId,
   });
+
+  // Сохраняем оригинальные данные для сравнения
+  const [originalRequest, setOriginalRequest] = useState<Partial<IRequest> | null>(null);
+  const [originalQueryParams, setOriginalQueryParams] = useState<KeyValuePair[]>([]);
+  const [originalHeaders, setOriginalHeaders] = useState<KeyValuePair[]>([]);
 
   // Преобразование объекта в массив пар ключ-значение
   const objectToKeyValueArray = (obj: Record<string, string> = {}): KeyValuePair[] => {
@@ -65,25 +72,74 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
 
   // Загрузка запроса
   useEffect(() => {
-    if (requestId) {
+    if (requestId && requestId > 0) {
       setLoading(true);
       getRequestById(requestId)
         .then((req) => {
-          setRequest(req);
-          setQueryParams(objectToKeyValueArray(req.queryParams));
-          setHeaders(objectToKeyValueArray(req.headers));
-          if (req.body) {
+          // Normalize body to string
+          const normalizedReq = {
+            ...req,
+            body: typeof req.body === 'string' 
+              ? req.body 
+              : req.body != null 
+                ? JSON.stringify(req.body, null, 2) 
+                : '',
+          };
+          
+          setRequest(normalizedReq);
+          setOriginalRequest(normalizedReq);
+          const qp = objectToKeyValueArray(req.queryParams);
+          const hd = objectToKeyValueArray(req.headers);
+          setQueryParams(qp);
+          setHeaders(hd);
+          setOriginalQueryParams(qp);
+          setOriginalHeaders(hd);
+          if (normalizedReq.body) {
             setBodyType('json');
           }
         })
-        .catch((err) => {
-          showError('Failed to load request');
+        .catch((error) => {
+          showError(`Failed to load request: ${error.message || 'Unknown error'}`);
         })
         .finally(() => {
           setLoading(false);
         });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
+
+  // Проверка наличия изменений
+  const hasChanges = () => {
+    // Для нового запроса (нет requestId) - всегда показываем кнопку Save
+    if (!requestId) return true;
+    
+    if (!originalRequest) return false;
+
+    // Проверяем основные поля
+    if (
+      request.name !== originalRequest.name ||
+      request.method !== originalRequest.method ||
+      request.url !== originalRequest.url ||
+      request.body !== originalRequest.body ||
+      request.preRequestScript !== originalRequest.preRequestScript ||
+      request.postRequestScript !== originalRequest.postRequestScript ||
+      request.collectionId !== originalRequest.collectionId
+    ) {
+      return true;
+    }
+
+    // Проверяем queryParams
+    const currentQP = JSON.stringify(keyValueArrayToObject(queryParams));
+    const originalQP = JSON.stringify(keyValueArrayToObject(originalQueryParams));
+    if (currentQP !== originalQP) return true;
+
+    // Проверяем headers
+    const currentHD = JSON.stringify(keyValueArrayToObject(headers));
+    const originalHD = JSON.stringify(keyValueArrayToObject(originalHeaders));
+    if (currentHD !== originalHD) return true;
+
+    return false;
+  };
 
   // Обработка отправки запроса
   const handleSend = async () => {
@@ -103,7 +159,7 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
           ...request,
           queryParams: keyValueArrayToObject(queryParams),
           headers: keyValueArrayToObject(headers),
-        } as any);
+        } as Partial<IRequest>);
         savedRequestId = newRequest.id;
         success('Request saved');
         if (onSave) onSave(newRequest);
@@ -115,24 +171,40 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
         });
       }
 
-      // Выполнить запрос
-      const run = await createRun(savedRequestId, activeEnvironmentId || undefined);
+      // Создать запрос (получим PENDING статус)
+      const initialRun = await createRun(savedRequestId, activeEnvironmentId || undefined);
+
+      // Опрашивать статус пока запрос не завершится
+      const finalRun = await pollRunUntilComplete(initialRun.id);
 
       // Показать результат
-      if (run.error) {
-        showError(`Request failed: ${run.error}`);
+      if (finalRun.error) {
+        showError(`Request failed: ${finalRun.error}`);
       } else {
-        success(`Request completed: ${run.statusCode}`);
+        success(`Request completed: ${finalRun.responseStatus || 'N/A'}`);
       }
-    } catch (err) {
-      showError('Failed to send request');
+    } catch (error) {
+      showError(`Failed to send request: ${(error as Error).message || 'Unknown error'}`);
     } finally {
       setSending(false);
     }
   };
 
+  // Обработка отмены запроса
+  const handleCancel = async () => {
+    if (!currentRun?.id) return;
+
+    try {
+      await cancelRun(currentRun.id);
+      success('Request cancelled');
+      setSending(false);
+    } catch (error) {
+      showError(`Failed to cancel request: ${(error as Error).message || 'Unknown error'}`);
+    }
+  };
+
   // Обработка сохранения
-  const handleSave = async (formData: { name: string; method: HttpMethod; url: string }) => {
+  const handleSave = async (formData: { name: string; method: HttpMethod; url: string; collectionId?: number }) => {
     const requestData = {
       ...request,
       ...formData,
@@ -144,14 +216,27 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
       if (requestId) {
         await updateRequest(requestId, requestData);
         success('Request updated');
+        // Обновляем original данные после сохранения
+        setOriginalRequest(requestData);
+        setOriginalQueryParams(queryParams);
+        setOriginalHeaders(headers);
       } else {
-        const newRequest = await createRequest(requestData as any);
+        const newRequest = await createRequest(requestData as Partial<IRequest>);
         success('Request created');
+        // Устанавливаем original данные для нового запроса
+        setOriginalRequest(newRequest);
+        setOriginalQueryParams(queryParams);
+        setOriginalHeaders(headers);
         if (onSave) onSave(newRequest);
       }
-    } catch (err) {
-      showError('Failed to save request');
+    } catch (error) {
+      showError(`Failed to save request: ${(error as Error).message || 'Unknown error'}`);
     }
+  };
+
+  // Обработка изменений в форме
+  const handleFormChange = (formData: Partial<{ name: string; method: HttpMethod; url: string; collectionId?: number }>) => {
+    setRequest((prev) => ({ ...prev, ...formData }));
   };
 
   if (loading) {
@@ -171,42 +256,51 @@ export const RequestEditor = ({ requestId, onSave }: RequestEditorProps) => {
             name: request.name || 'New Request',
             method: request.method || HttpMethod.GET,
             url: request.url || '',
+            collectionId: request.collectionId,
           }}
           onSubmit={handleSave}
+          onChange={handleFormChange}
           onSend={handleSend}
+          onCancel={handleCancel}
           loading={sending}
+          isDirtyExternal={hasChanges()}
         />
       </div>
 
       {/* Request Configuration & Response */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 overflow-hidden">
-        {/* Left: Request Configuration */}
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <RequestTabs
-            queryParams={queryParams}
-            headers={headers}
-            body={request.body || ''}
-            bodyType={bodyType}
-            preRequestScript={request.preRequestScript || ''}
-            postRequestScript={request.postRequestScript || ''}
-            onQueryParamsChange={setQueryParams}
-            onHeadersChange={setHeaders}
-            onBodyChange={(body) => setRequest({ ...request, body })}
-            onBodyTypeChange={setBodyType}
-            onPreRequestScriptChange={(script) =>
-              setRequest({ ...request, preRequestScript: script })
-            }
-            onPostRequestScriptChange={(script) =>
-              setRequest({ ...request, postRequestScript: script })
-            }
-          />
-        </div>
-
-        {/* Right: Response */}
-        <div>
-          <ResponseViewer run={currentRun} loading={sending} />
-        </div>
-      </div>
+      <ResizableSplit
+        className="flex-1 p-4 gap-4 overflow-hidden"
+        defaultLeftWidth={50}
+        minLeftWidth={30}
+        minRightWidth={30}
+        left={
+          <div className="border border-gray-200 rounded-lg overflow-hidden h-full">
+            <RequestTabs
+              queryParams={queryParams}
+              headers={headers}
+              body={request.body || ''}
+              bodyType={bodyType}
+              preRequestScript={request.preRequestScript || ''}
+              postRequestScript={request.postRequestScript || ''}
+              onQueryParamsChange={setQueryParams}
+              onHeadersChange={setHeaders}
+              onBodyChange={(body) => setRequest({ ...request, body })}
+              onBodyTypeChange={setBodyType}
+              onPreRequestScriptChange={(script) =>
+                setRequest({ ...request, preRequestScript: script })
+              }
+              onPostRequestScriptChange={(script) =>
+                setRequest({ ...request, postRequestScript: script })
+              }
+            />
+          </div>
+        }
+        right={
+          <div className="h-full">
+            <ResponseViewer run={currentRun} loading={sending} />
+          </div>
+        }
+      />
     </div>
   );
 };

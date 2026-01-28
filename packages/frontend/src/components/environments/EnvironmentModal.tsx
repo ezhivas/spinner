@@ -26,7 +26,7 @@ export const EnvironmentModal = ({ isOpen, onClose, environment }: EnvironmentMo
   const { createEnvironment, updateEnvironment, loading } = useEnvironmentsStore();
   const { success, error: showError } = useToastStore();
 
-  const [variables, setVariables] = useState<Array<{ key: string; value: string }>>([]);
+  const [variables, setVariables] = useState<Array<{ key: string; value: string }>>([{ key: '', value: '' }]);
 
   const {
     register,
@@ -35,16 +35,20 @@ export const EnvironmentModal = ({ isOpen, onClose, environment }: EnvironmentMo
     formState: { errors },
   } = useForm<EnvironmentFormData>({
     resolver: zodResolver(environmentSchema),
-    defaultValues: {
-      name: environment?.name || '',
-    },
   });
 
-  // Инициализация переменных при открытии
+  // Синхронизация формы с environment при изменении
   useEffect(() => {
     if (isOpen) {
+      // Сброс формы
       reset({ name: environment?.name || '' });
+    }
+  }, [isOpen, environment?.name, reset]);
 
+  // Отдельный эффект для variables (инициализация при открытии модального окна)
+  useEffect(() => {
+    if (isOpen) {
+      // Инициализация переменных
       if (environment?.variables) {
         const vars = Object.entries(environment.variables).map(([key, value]) => ({
           key,
@@ -55,7 +59,8 @@ export const EnvironmentModal = ({ isOpen, onClose, environment }: EnvironmentMo
         setVariables([{ key: '', value: '' }]);
       }
     }
-  }, [isOpen, environment, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, environment?.id]); // Используем environment.id вместо всего объекта
 
   const addVariable = () => {
     setVariables([...variables, { key: '', value: '' }]);

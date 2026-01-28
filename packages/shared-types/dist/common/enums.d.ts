@@ -25,9 +25,10 @@ export declare enum BodyType {
  * Статусы выполнения запроса
  */
 export declare enum RunStatus {
-    PENDING = "pending",
-    RUNNING = "running",
-    COMPLETED = "completed",
-    FAILED = "failed"
+    PENDING = "PENDING",
+    RUNNING = "RUNNING",
+    SUCCESS = "SUCCESS",
+    ERROR = "ERROR",
+    CANCELLED = "CANCELLED"
 }
 //# sourceMappingURL=enums.d.ts.map

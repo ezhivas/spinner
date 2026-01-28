@@ -4,14 +4,13 @@ import { RunStatus } from '../common/enums';
  */
 export interface IRun {
     id: number;
-    requestId: number;
+    requestId?: number;
     status: RunStatus;
-    statusCode?: number;
-    responseBody?: any;
+    responseStatus?: number;
+    responseBody?: unknown;
     responseHeaders?: Record<string, string>;
     error?: string;
-    startedAt: Date;
-    completedAt?: Date;
+    createdAt: Date;
     durationMs?: number;
     scriptOutput?: string;
 }

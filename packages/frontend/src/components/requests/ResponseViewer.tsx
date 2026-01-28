@@ -36,11 +36,16 @@ export const ResponseViewer = ({ run, loading }: ResponseViewerProps) => {
   }
 
   const statusColor =
-    run.statusCode >= 200 && run.statusCode < 300
+    run.responseStatus && run.responseStatus >= 200 && run.responseStatus < 300
       ? 'text-green-600'
-      : run.statusCode >= 400
+      : run.responseStatus && run.responseStatus >= 400
       ? 'text-red-600'
       : 'text-yellow-600';
+
+  // Вычисление размера ответа
+  const responseSize = run.responseBody 
+    ? new Blob([typeof run.responseBody === 'string' ? run.responseBody : JSON.stringify(run.responseBody)]).size
+    : 0;
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -48,13 +53,13 @@ export const ResponseViewer = ({ run, loading }: ResponseViewerProps) => {
       <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className={`text-sm font-semibold ${statusColor}`}>
-            Status: {run.statusCode || 'N/A'}
+            Status: {run.responseStatus || 'N/A'}
           </span>
           <span className="text-sm text-gray-600">
-            Time: {run.responseTime ? `${run.responseTime}ms` : 'N/A'}
+            Time: {run.durationMs ? `${run.durationMs}ms` : 'N/A'}
           </span>
           <span className="text-sm text-gray-600">
-            Size: {run.responseSize ? `${(run.responseSize / 1024).toFixed(2)} KB` : 'N/A'}
+            Size: {responseSize ? `${(responseSize / 1024).toFixed(2)} KB` : 'N/A'}
           </span>
         </div>
         {run.error && (

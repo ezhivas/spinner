@@ -4,7 +4,7 @@ import { useElectronAPI } from '@/hooks/useElectronAPI';
  * Футер с информацией о статусе и режиме работы
  */
 export const StatusFooter = () => {
-  const { mode, isElectron } = useElectronAPI();
+  const { isElectron } = useElectronAPI();
 
   return (
     <div className="h-6 bg-primary-600 text-white px-4 flex items-center justify-between text-xs">

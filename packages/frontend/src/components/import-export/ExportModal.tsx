@@ -48,7 +48,7 @@ export const ExportModal = ({ isOpen, onClose, collection }: ExportModalProps) =
 
       success(`Collection exported as ${filename}`);
       onClose();
-    } catch (err) {
+    } catch {
       showError('Failed to export collection');
     } finally {
       setLoading(false);

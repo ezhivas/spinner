@@ -43,14 +43,14 @@ export const environmentsApi = {
   /**
    * Импортировать окружение из Postman формата
    */
-  import: async (data: any): Promise<IEnvironment> => {
+  import: async (data: Record<string, unknown>): Promise<IEnvironment> => {
     return apiClient.post<IEnvironment>('/api/environments/import', data);
   },
 
   /**
    * Экспортировать окружение в Postman формат
    */
-  export: async (id: number): Promise<any> => {
-    return apiClient.get<any>(`/api/environments/${id}/export`);
+  export: async (id: number): Promise<Record<string, unknown>> => {
+    return apiClient.get<Record<string, unknown>>(`/api/environments/${id}/export`);
   },
 };

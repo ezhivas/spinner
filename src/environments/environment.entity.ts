@@ -4,7 +4,21 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
-import { JsonColumn } from '../common/decorators/json-column.decorator';
+
+const jsonTransformer = {
+  to: (value: any) => {
+    if (value === null || value === undefined) return null;
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  },
+  from: (value: string) => {
+    if (!value) return null;
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch {
+      return value;
+    }
+  },
+};
 
 @Entity('environments')
 export class EnvironmentEntity {
@@ -21,7 +35,7 @@ export class EnvironmentEntity {
    *   "TOKEN": "abc123"
    * }
    */
-  @JsonColumn()
+  @Column({ type: 'text', transformer: jsonTransformer })
   variables: Record<string, string>;
 
   @CreateDateColumn()

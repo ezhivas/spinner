@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Edit, Trash2, Plus, Upload, Download } from 'lucide-react';
 import { useEnvironmentsStore, useToastStore } from '@/store';
-import { Button } from '@/components/common';
+import { Button, ConfirmDialog } from '@/components/common';
 import { EnvironmentModal } from './EnvironmentModal';
 import { EnvironmentImportModal } from './EnvironmentImportModal';
 import { EnvironmentExportModal } from './EnvironmentExportModal';
@@ -18,20 +18,23 @@ export const EnvironmentsList = () => {
   const [editingEnvironment, setEditingEnvironment] = useState<IEnvironment | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<IEnvironment | null>(null);
 
   useEffect(() => {
     fetchEnvironments();
   }, [fetchEnvironments]);
 
   const handleDelete = async (env: IEnvironment) => {
-    if (!confirm(`Are you sure you want to delete "${env.name}"?`)) {
-      return;
-    }
+    setConfirmDelete(env);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
 
     try {
-      await deleteEnvironment(env.id);
+      await deleteEnvironment(confirmDelete.id);
       success('Environment deleted');
-    } catch (err) {
+    } catch {
       showError('Failed to delete environment');
     }
   };
@@ -158,6 +161,19 @@ export const EnvironmentsList = () => {
       <EnvironmentExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          handleConfirmDelete();
+          setConfirmDelete(null);
+        }}
+        title="Delete Environment"
+        message={confirmDelete ? `Are you sure you want to delete "${confirmDelete.name}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        variant="danger"
       />
     </>
   );

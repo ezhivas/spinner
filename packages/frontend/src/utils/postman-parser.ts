@@ -31,6 +31,11 @@ interface PostmanCollection {
   item: PostmanRequest[];
 }
 
+interface PostmanFolder {
+  name: string;
+  item: PostmanRequest[];
+}
+
 interface SpinnerRequest {
   name: string;
   method: string;
@@ -47,6 +52,21 @@ interface SpinnerCollection {
   name: string;
   description: string;
   requests: SpinnerRequest[];
+}
+
+interface SpinnerCollectionInput {
+  name: string;
+  description?: string;
+  requests?: Array<{
+    name: string;
+    method: string;
+    url: string;
+    headers?: Record<string, unknown>;
+    queryParams?: Record<string, unknown>;
+    body?: string;
+    preRequestScript?: string;
+    postRequestScript?: string;
+  }>;
 }
 
 /**
@@ -192,7 +212,7 @@ function parsePostmanRequest(item: PostmanRequest): SpinnerRequest {
  * Main parser function
  * Converts Postman Collection v2.1 to SpinneR format
  */
-export function parsePostmanCollection(data: any): SpinnerCollection {
+export function parsePostmanCollection(data: Record<string, unknown>): SpinnerCollection {
   // Validate schema
   if (!data.info || !data.info.schema) {
     throw new Error('Invalid Postman collection: missing schema');
@@ -214,9 +234,9 @@ export function parsePostmanCollection(data: any): SpinnerCollection {
   if (postmanCollection.item && Array.isArray(postmanCollection.item)) {
     postmanCollection.item.forEach((item) => {
       // Handle nested folders (flatten for now)
-      if ((item as any).item) {
+      if ('item' in item && Array.isArray((item as unknown as PostmanFolder).item)) {
         // It's a folder, recursively parse items
-        (item as any).item.forEach((nestedItem: PostmanRequest) => {
+        (item as unknown as PostmanFolder).item.forEach((nestedItem: PostmanRequest) => {
           requests.push(parsePostmanRequest(nestedItem));
         });
       } else {
@@ -236,11 +256,11 @@ export function parsePostmanCollection(data: any): SpinnerCollection {
 /**
  * Export SpinneR collection to Postman format
  */
-export function exportToPostmanFormat(collection: any): PostmanCollection {
+export function exportToPostmanFormat(collection: SpinnerCollectionInput): PostmanCollection {
   const postmanItems: PostmanRequest[] = [];
 
   if (collection.requests && Array.isArray(collection.requests)) {
-    collection.requests.forEach((request: any) => {
+    collection.requests.forEach((request) => {
       const headers: Array<{ key: string; value: string }> = [];
 
       if (request.headers) {

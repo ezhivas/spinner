@@ -1,27 +1,18 @@
-import { useState, useEffect } from 'react';
-import { isElectronMode, getAppMode, AppMode } from '@/utils/api-config';
-import type { ElectronAPI } from '@/types/electron';
+import { useMemo } from 'react';
+import { isElectronMode, getAppMode } from '@/utils/api-config';
 
 /**
  * Хук для работы с Electron API
  */
 export const useElectronAPI = () => {
-  const [isElectron, setIsElectron] = useState(false);
-  const [api, setApi] = useState<ElectronAPI | null>(null);
-
-  useEffect(() => {
-    const electron = isElectronMode();
-    setIsElectron(electron);
-
-    if (electron && window.electron) {
-      setApi(window.electron);
-    }
-  }, []);
+  const isElectron = useMemo(() => isElectronMode(), []);
+  const api = useMemo(() => (isElectron && window.electron) ? window.electron : null, [isElectron]);
+  const mode = useMemo(() => getAppMode(), []);
 
   return {
     isElectron,
     api,
-    mode: getAppMode(),
+    mode,
   };
 };
 
@@ -31,7 +22,7 @@ export const useElectronAPI = () => {
 export const useElectronImportCollection = () => {
   const { api, isElectron } = useElectronAPI();
 
-  const importCollection = async (): Promise<any | null> => {
+  const importCollection = async (): Promise<Record<string, unknown> | null> => {
     if (!isElectron || !api) {
       throw new Error('Import is only available in Electron mode');
     }
@@ -49,7 +40,7 @@ export const useElectronImportCollection = () => {
 export const useElectronExportCollection = () => {
   const { api, isElectron } = useElectronAPI();
 
-  const exportCollection = async (data: any): Promise<string | null> => {
+  const exportCollection = async (data: Record<string, unknown>): Promise<string | null> => {
     if (!isElectron || !api) {
       throw new Error('Export is only available in Electron mode');
     }
@@ -66,7 +57,7 @@ export const useElectronExportCollection = () => {
 export const useElectronImportBackup = () => {
   const { api, isElectron } = useElectronAPI();
 
-  const importBackup = async (): Promise<any | null> => {
+  const importBackup = async (): Promise<Record<string, unknown> | null> => {
     if (!isElectron || !api) {
       throw new Error('Import backup is only available in Electron mode');
     }
@@ -84,7 +75,7 @@ export const useElectronImportBackup = () => {
 export const useElectronExportBackup = () => {
   const { api, isElectron } = useElectronAPI();
 
-  const exportBackup = async (data: any): Promise<string | null> => {
+  const exportBackup = async (data: Record<string, unknown>): Promise<string | null> => {
     if (!isElectron || !api) {
       throw new Error('Export backup is only available in Electron mode');
     }

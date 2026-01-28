@@ -27,8 +27,9 @@ export enum BodyType {
  * Статусы выполнения запроса
  */
 export enum RunStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+  CANCELLED = 'CANCELLED',
 }

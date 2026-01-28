@@ -19,7 +19,7 @@ interface RequestsStore {
   deleteRequest: (id: number) => Promise<void>;
 }
 
-export const useRequestsStore = create<RequestsStore>((set, get) => ({
+export const useRequestsStore = create<RequestsStore>()((set) => ({
   requests: [],
   loading: false,
   error: null,
@@ -59,7 +59,7 @@ export const useRequestsStore = create<RequestsStore>((set, get) => ({
   createRequest: async (data) => {
     set({ loading: true, error: null });
     try {
-      const request = await requestsApi.create(data as any);
+      const request = await requestsApi.create(data as IRequest);
       set((state) => ({
         requests: [...state.requests, request],
         loading: false,
@@ -74,7 +74,7 @@ export const useRequestsStore = create<RequestsStore>((set, get) => ({
   updateRequest: async (id, data) => {
     set({ loading: true, error: null });
     try {
-      const updated = await requestsApi.update(id, data as any);
+      const updated = await requestsApi.update(id, data);
       set((state) => ({
         requests: state.requests.map((r) => (r.id === id ? updated : r)),
         loading: false,

@@ -3,10 +3,10 @@
  */
 export interface ElectronAPI {
   getBackendPort: () => Promise<number>;
-  importCollection: () => Promise<{ path: string; data: any } | null>;
-  exportCollection: (data: any) => Promise<string | null>;
-  exportBackup: (data: any) => Promise<string | null>;
-  importBackup: () => Promise<{ path: string; data: any } | null>;
+  importCollection: () => Promise<{ path: string; data: Record<string, unknown> } | null>;
+  exportCollection: (data: Record<string, unknown>) => Promise<string | null>;
+  exportBackup: (data: Record<string, unknown>) => Promise<string | null>;
+  importBackup: () => Promise<{ path: string; data: Record<string, unknown> } | null>;
 }
 
 /**

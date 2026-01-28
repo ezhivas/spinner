@@ -4,6 +4,7 @@ import { useEnvironmentsStore } from '@/store';
 import { EnvironmentModal } from './EnvironmentModal';
 import { EnvironmentImportModal } from './EnvironmentImportModal';
 import { EnvironmentExportModal } from './EnvironmentExportModal';
+import { EnvironmentsManageModal } from './EnvironmentsManageModal';
 import type { IEnvironment } from '@shared/environments';
 
 /**
@@ -22,6 +23,7 @@ export const EnvironmentSelector = () => {
   const [editingEnvironment, setEditingEnvironment] = useState<IEnvironment | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
 
   useEffect(() => {
     fetchEnvironments();
@@ -35,9 +37,18 @@ export const EnvironmentSelector = () => {
   };
 
   const handleManage = () => {
+    setShowManageModal(true);
+    setIsOpen(false);
+  };
+
+  const handleEdit = (env: IEnvironment) => {
+    setEditingEnvironment(env);
+    setIsModalOpen(true);
+  };
+
+  const handleCreate = () => {
     setEditingEnvironment(null);
     setIsModalOpen(true);
-    setIsOpen(false);
   };
 
   return (
@@ -66,7 +77,7 @@ export const EnvironmentSelector = () => {
               </div>
 
               <button
-                onClick={() => handleSelect(null as any)}
+                onClick={() => handleSelect(null as unknown as number)}
                 className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <span>No Environment</span>
@@ -144,6 +155,14 @@ export const EnvironmentSelector = () => {
       <EnvironmentExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
+      />
+
+      {/* Manage Environments Modal */}
+      <EnvironmentsManageModal
+        isOpen={showManageModal}
+        onClose={() => setShowManageModal(false)}
+        onEdit={handleEdit}
+        onCreate={handleCreate}
       />
     </>
   );

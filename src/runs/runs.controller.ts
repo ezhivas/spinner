@@ -28,9 +28,21 @@ export class RunsController {
     return this.service.findOne(+id);
   }
 
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel running request' })
+  cancel(@Param('id') id: number) {
+    return this.service.cancelRun(+id);
+  }
+
   @Delete('cleanup')
   @ApiOperation({ summary: 'Delete runs older than specified hours' })
   cleanup(@Query('hours') hours: number) {
     return this.service.deleteOlderThan(+hours);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete run by id' })
+  remove(@Param('id') id: number) {
+    return this.service.remove(+id);
   }
 }

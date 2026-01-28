@@ -28,6 +28,7 @@ export default defineConfig({
   // Настройки для production сборки
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
       output: {
@@ -38,6 +39,11 @@ export default defineConfig({
         },
       },
     },
+  },
+  
+  esbuild: {
+    // Игнорируем ошибки типов при сборке (проверка будет в отдельном скрипте)
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
   },
 
   // Базовый путь для Electron (относительный) и Docker (абсолютный)

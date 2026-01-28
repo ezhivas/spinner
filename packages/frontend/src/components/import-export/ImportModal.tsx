@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Upload, FileJson, AlertCircle, CheckCircle } from 'lucide-react';
 import { Modal, Button } from '@/components/common';
 import { useCollectionsStore, useToastStore } from '@/store';
-import { parsePostmanCollection } from '@/utils/postman-parser';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ export const ImportModal = ({ isOpen, onClose }: ImportModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (selectedFile: File) => {
@@ -27,9 +26,17 @@ export const ImportModal = ({ isOpen, onClose }: ImportModalProps) => {
       const text = await selectedFile.text();
       const data = JSON.parse(text);
 
-      // Try to parse as Postman collection
-      const parsed = parsePostmanCollection(data);
-      setPreview(parsed);
+      // Validate it's a Postman collection, but don't parse yet
+      if (!data.info || !data.info.schema) {
+        throw new Error('Invalid Postman collection: missing schema');
+      }
+
+      if (!data.info.schema.includes('v2.1')) {
+        throw new Error('Only Postman Collection v2.1 format is supported');
+      }
+
+      // Store the original data for preview and import
+      setPreview(data);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -138,15 +145,15 @@ export const ImportModal = ({ isOpen, onClose }: ImportModalProps) => {
                 <p className="text-sm font-medium text-green-900">Ready to import</p>
                 <div className="mt-2 text-sm text-green-700 space-y-1">
                   <p>
-                    <strong>Name:</strong> {preview.name}
+                    <strong>Name:</strong> {preview.info?.name || 'Unknown'}
                   </p>
-                  {preview.description && (
+                  {preview.info?.description && (
                     <p>
-                      <strong>Description:</strong> {preview.description}
+                      <strong>Description:</strong> {preview.info.description}
                     </p>
                   )}
                   <p>
-                    <strong>Requests:</strong> {preview.requests?.length || 0}
+                    <strong>Requests:</strong> {preview.item?.length || 0}
                   </p>
                 </div>
               </div>

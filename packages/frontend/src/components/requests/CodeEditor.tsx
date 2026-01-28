@@ -1,7 +1,7 @@
 import Editor from '@monaco-editor/react';
 
 interface CodeEditorProps {
-  value: string;
+  value: string | any;
   onChange: (value: string) => void;
   language?: 'json' | 'javascript' | 'text';
   height?: string;
@@ -22,12 +22,19 @@ export const CodeEditor = ({
     onChange(newValue || '');
   };
 
+  // Ensure value is always a string
+  const stringValue = typeof value === 'string' 
+    ? value 
+    : value != null 
+      ? JSON.stringify(value, null, 2) 
+      : '';
+
   return (
     <div className="border border-gray-300 rounded-md overflow-hidden">
       <Editor
         height={height}
         language={language}
-        value={value}
+        value={stringValue}
         onChange={handleChange}
         theme="vs-light"
         options={{

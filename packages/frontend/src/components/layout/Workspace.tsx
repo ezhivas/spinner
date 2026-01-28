@@ -56,6 +56,7 @@ export const Workspace = () => {
         {activeTab && (
           <RequestEditor
             requestId={activeTab.requestId}
+            initialCollectionId={activeTab.data?.collectionId}
             onSave={(request) => {
               // Обновить вкладку после сохранения
               const { updateTab } = useTabsStore.getState();

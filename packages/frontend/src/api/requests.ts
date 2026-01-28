@@ -30,7 +30,7 @@ export const requestsApi = {
    * Обновить запрос
    */
   update: async (id: number, data: UpdateRequestDto): Promise<IRequest> => {
-    return apiClient.put<IRequest>(`/api/requests/${id}`, data);
+    return apiClient.patch<IRequest>(`/api/requests/${id}`, data);
   },
 
   /**

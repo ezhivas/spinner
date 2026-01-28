@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Upload, Download } from 'lucide-react';
+import { Upload, Download, Database } from 'lucide-react';
 import { EnvironmentSelector } from '@/components/environments/EnvironmentSelector';
 import { ImportModal, ExportModal } from '@/components/import-export';
+import { GlobalBackupModal } from '@/components/backup/GlobalBackupModal';
 
 /**
  * Header приложения с селектором окружений
@@ -9,14 +10,12 @@ import { ImportModal, ExportModal } from '@/components/import-export';
 export const Header = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
 
   return (
     <>
       <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900">SpinneR</h1>
-        </div>
-
+        {/* Left side - Controls */}
         <div className="flex items-center gap-4">
           {/* Import/Export Buttons */}
           <div className="flex items-center gap-2">
@@ -38,13 +37,32 @@ export const Header = () => {
             </button>
           </div>
 
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-300" />
+
+          {/* Global Backup Button */}
+          <button
+            onClick={() => setShowBackupModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-700 border border-blue-300 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+            title="Global Backup & Restore"
+          >
+            <Database className="w-4 h-4" />
+            Backup
+          </button>
+
           <EnvironmentSelector />
+        </div>
+
+        {/* Right side - App Name */}
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-gray-900">SpinneR</h1>
         </div>
       </div>
 
       {/* Modals */}
       <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
       <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
+      <GlobalBackupModal isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} />
     </>
   );
 };
