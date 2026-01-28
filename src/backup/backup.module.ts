@@ -5,7 +5,6 @@ import { BackupService } from './backup.service';
 import { RequestEntity } from '../requests/request.entity';
 import { CollectionEntity } from '../collections/collection.entity';
 import { EnvironmentEntity } from '../environments/environment.entity';
-import { RequestRunEntity } from '../runs/request-run.entity';
 
 @Module({
   imports: [
@@ -13,7 +12,6 @@ import { RequestRunEntity } from '../runs/request-run.entity';
       RequestEntity,
       CollectionEntity,
       EnvironmentEntity,
-      RequestRunEntity,
     ]),
   ],
   controllers: [BackupController],

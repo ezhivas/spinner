@@ -114,6 +114,16 @@ class ApiClient {
     const response = await instance.patch<T>(url, data, config);
     return response.data;
   }
+
+  /**
+   * Получить базовый URL API
+   */
+  async getBaseUrl(): Promise<string> {
+    if (!this.initialized) {
+      await this.init();
+    }
+    return this.baseURL;
+  }
 }
 
 // Singleton экземпляр

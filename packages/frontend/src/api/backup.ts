@@ -8,7 +8,8 @@ export const backupApi = {
    * Экспортировать все данные приложения
    */
   exportAll: async (): Promise<Blob> => {
-    const response = await fetch(apiClient.getBaseUrl() + '/api/backup/export', {
+    const baseUrl = await apiClient.getBaseUrl();
+    const response = await fetch(baseUrl + '/api/backup/export', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -58,13 +58,13 @@ export const RequestTabs = ({
   return (
     <div className="flex flex-col h-full">
       {/* Tabs Header */}
-      <div className="flex border-b border-gray-200 bg-gray-50">
+      <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`
-              px-4 py-2 text-sm font-medium border-b-2 transition-colors
+              flex-shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
               ${
                 activeTab === tab.id
                   ? 'border-primary-500 text-primary-600 bg-white'

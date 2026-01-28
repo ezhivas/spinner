@@ -79,7 +79,7 @@ export const GlobalBackupModal = ({ isOpen, onClose }: GlobalBackupModalProps) =
           <div className="flex-1">
             <h3 className="font-medium text-yellow-900 mb-1">Important Notice</h3>
             <p className="text-sm text-yellow-700">
-              This will export or import ALL data including collections, requests, environments, and history.
+              This will export or import ALL data including collections, requests, and environments.
               Import will replace existing data with the same IDs.
             </p>
           </div>
@@ -97,7 +97,6 @@ export const GlobalBackupModal = ({ isOpen, onClose }: GlobalBackupModalProps) =
           <ul className="text-sm text-gray-600 list-disc list-inside ml-2 space-y-1">
             <li>All collections and requests</li>
             <li>All environments and variables</li>
-            <li>Request execution history</li>
           </ul>
           <Button
             onClick={handleExport}
