@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Res, Query } from '@nestjs/common';
 import type { Response } from 'express';
 import { BackupService } from './backup.service';
 
@@ -7,8 +7,14 @@ export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 
   @Get('export')
-  async exportAll(@Res() res: Response) {
-    const backup = await this.backupService.exportAll();
+  async exportAll(
+    @Query('includeEnvironments') includeEnvironments: string,
+    @Res() res: Response,
+  ) {
+    // Parse query parameter (default to true if not specified)
+    const shouldIncludeEnvs = includeEnvironments !== 'false';
+
+    const backup = await this.backupService.exportAll(shouldIncludeEnvs);
 
     const filename = `spinner-backup-${new Date().toISOString().split('T')[0]}.json`;
 

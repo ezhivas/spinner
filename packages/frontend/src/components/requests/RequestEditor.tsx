@@ -48,7 +48,8 @@ export const RequestEditor = ({ requestId, initialCollectionId, onSave }: Reques
   const [originalHeaders, setOriginalHeaders] = useState<KeyValuePair[]>([]);
 
   // Преобразование объекта в массив пар ключ-значение
-  const objectToKeyValueArray = (obj: Record<string, string> = {}): KeyValuePair[] => {
+  const objectToKeyValueArray = (obj?: Record<string, string> | null): KeyValuePair[] => {
+    if (!obj || typeof obj !== 'object') return [];
     return Object.entries(obj).map(([key, value]) => ({
       key,
       value,
@@ -79,17 +80,19 @@ export const RequestEditor = ({ requestId, initialCollectionId, onSave }: Reques
           // Normalize body to string
           const normalizedReq = {
             ...req,
-            body: typeof req.body === 'string' 
-              ? req.body 
-              : req.body != null 
-                ? JSON.stringify(req.body, null, 2) 
+            headers: req.headers && typeof req.headers === 'object' ? req.headers : {},
+            queryParams: req.queryParams && typeof req.queryParams === 'object' ? req.queryParams : {},
+            body: typeof req.body === 'string'
+              ? req.body
+              : req.body != null
+                ? JSON.stringify(req.body, null, 2)
                 : '',
           };
-          
+
           setRequest(normalizedReq);
           setOriginalRequest(normalizedReq);
-          const qp = objectToKeyValueArray(req.queryParams);
-          const hd = objectToKeyValueArray(req.headers);
+          const qp = objectToKeyValueArray(normalizedReq.queryParams);
+          const hd = objectToKeyValueArray(normalizedReq.headers);
           setQueryParams(qp);
           setHeaders(hd);
           setOriginalQueryParams(qp);

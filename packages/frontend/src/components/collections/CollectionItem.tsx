@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Folder, MoreVertical, Edit, Trash2, Download, ChevronRight, ChevronDown, FileText, X } from 'lucide-react';
+import { Folder, MoreVertical, Edit, Trash2, Download, ChevronRight, ChevronDown, FileText, X, FileCode, Copy } from 'lucide-react';
 import type { ICollection } from '@shared/collections';
 import type { IRequest } from '@shared/requests';
-import { useCollectionsStore, useToastStore, useTabsStore, useRequestsStore } from '@/store';
+import { useCollectionsStore, useToastStore, useTabsStore, useRequestsStore, useEnvironmentsStore } from '@/store';
+import { requestsApi } from '@/api';
 import { ConfirmDialog } from '@/components/common';
 import { HttpMethod } from '@shared/common/enums';
 
@@ -23,6 +24,7 @@ export const CollectionItem = ({ collection, onEdit }: CollectionItemProps) => {
   const { deleteRequest } = useRequestsStore();
   const { success, error: showError } = useToastStore();
   const { addTab } = useTabsStore();
+  const { activeEnvironmentId } = useEnvironmentsStore();
 
   const handleDelete = () => {
     setConfirmDeleteCollection(true);
@@ -84,6 +86,44 @@ export const CollectionItem = ({ collection, onEdit }: CollectionItemProps) => {
       await fetchCollections();
     } catch {
       showError('Failed to delete request');
+    }
+  };
+
+  const handleExportRequestAsCurl = async (e: React.MouseEvent, request: IRequest) => {
+    e.stopPropagation(); // Предотвращаем открытие запроса
+
+    try {
+      const blob = await requestsApi.exportAsCurl(request.id, activeEnvironmentId ?? undefined);
+
+      // Создаем ссылку для скачивания
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${request.name.replace(/[^a-zA-Z0-9]/g, '_')}.sh`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      const envMessage = activeEnvironmentId ? ' (with environment variables resolved)' : '';
+      success(`Request exported as cURL${envMessage}`);
+    } catch {
+      showError('Failed to export request as cURL');
+    }
+  };
+
+  const handleCopyCurlToClipboard = async (e: React.MouseEvent, request: IRequest) => {
+    e.stopPropagation(); // Предотвращаем открытие запроса
+
+    try {
+      const blob = await requestsApi.exportAsCurl(request.id, activeEnvironmentId ?? undefined);
+      const text = await blob.text();
+
+      await navigator.clipboard.writeText(text);
+      const envMessage = activeEnvironmentId ? ' (with environment variables resolved)' : '';
+      success(`cURL command copied to clipboard${envMessage}`);
+    } catch {
+      showError('Failed to copy cURL to clipboard');
     }
   };
 
@@ -205,6 +245,24 @@ export const CollectionItem = ({ collection, onEdit }: CollectionItemProps) => {
                 </span>
               </button>
               
+              {/* Copy cURL to Clipboard Button */}
+              <button
+                onClick={(e) => handleCopyCurlToClipboard(e, request)}
+                className="opacity-0 group-hover/request:opacity-100 p-1 text-green-600 hover:bg-green-50 rounded transition-all"
+                title="Copy cURL to clipboard"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Export as cURL Button */}
+              <button
+                onClick={(e) => handleExportRequestAsCurl(e, request)}
+                className="opacity-0 group-hover/request:opacity-100 p-1 text-blue-600 hover:bg-blue-50 rounded transition-all"
+                title="Export as cURL (download)"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+              </button>
+
               {/* Delete Button */}
               <button
                 onClick={(e) => handleDeleteRequest(e, request)}

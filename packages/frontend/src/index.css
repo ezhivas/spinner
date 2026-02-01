@@ -11,6 +11,14 @@
     --border: 214.3 31.8% 91.4%;
   }
 
+  .dark {
+    --background: 220 13% 10%;
+    --foreground: 210 40% 96%;
+    --primary: 221.2 83.2% 63.3%;
+    --primary-foreground: 210 40% 98%;
+    --border: 215 19% 28%;
+  }
+
   * {
     border-color: hsl(var(--border));
   }
@@ -23,6 +31,22 @@
     padding: 0;
     min-height: 100vh;
   }
+
+  /* Dark theme overrides for common utility colors */
+  .dark body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  .dark .bg-white { background-color: #0f172a !important; }
+  .dark .text-gray-700 { color: #e5e7eb !important; }
+  .dark .text-gray-900 { color: #f9fafb !important; }
+  .dark .text-gray-500 { color: #cbd5e1 !important; }
+  .dark .border-gray-200 { border-color: #1f2937 !important; }
+  .dark .border-gray-300 { border-color: #374151 !important; }
+  .dark .hover\:bg-gray-50:hover { background-color: #111827 !important; }
+  .dark .hover\:bg-gray-100:hover { background-color: #111827 !important; }
+  .dark .bg-gray-50 { background-color: #0b1220 !important; }
+  .dark .bg-gray-100 { background-color: #0b1220 !important; }
 
   #root {
     min-height: 100vh;
