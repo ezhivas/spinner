@@ -46,4 +46,36 @@ export const requestsApi = {
   getByCollection: async (collectionId: number): Promise<IRequest[]> => {
     return apiClient.get<IRequest[]>(`/api/collections/${collectionId}/requests`);
   },
+
+  /**
+   * Экспортировать запрос как cURL команду
+   * @param id - ID запроса
+   * @param environmentId - ID окружения для подстановки переменных (опционально)
+   */
+  exportAsCurl: async (id: number, environmentId?: number): Promise<Blob> => {
+    const baseUrl = await apiClient.getBaseUrl();
+    const url = environmentId
+      ? `${baseUrl}/api/requests/${id}/curl?environmentId=${environmentId}`
+      : `${baseUrl}/api/requests/${id}/curl`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export request as cURL');
+    }
+
+    return response.blob();
+  },
+
+  /**
+   * Импортировать запрос из cURL команды
+   */
+  importFromCurl: async (curlCommand: string, collectionId?: number): Promise<IRequest> => {
+    return apiClient.post<IRequest>('/api/requests/import/curl', {
+      curlCommand,
+      collectionId,
+    });
+  },
 };

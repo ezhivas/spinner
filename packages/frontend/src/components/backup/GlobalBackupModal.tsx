@@ -16,12 +16,13 @@ export const GlobalBackupModal = ({ isOpen, onClose }: GlobalBackupModalProps) =
   const { success, error: showError } = useToastStore();
   const [loading, setLoading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [includeEnvironments, setIncludeEnvironments] = useState(true);
 
   const handleExport = async () => {
     setLoading(true);
     try {
-      const blob = await backupApi.exportAll();
-      
+      const blob = await backupApi.exportAll(includeEnvironments);
+
       // Создаем ссылку для скачивания
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -96,8 +97,20 @@ export const GlobalBackupModal = ({ isOpen, onClose }: GlobalBackupModalProps) =
           </p>
           <ul className="text-sm text-gray-600 list-disc list-inside ml-2 space-y-1">
             <li>All collections and requests</li>
-            <li>All environments and variables</li>
+            <li>All environments and variables (optional)</li>
           </ul>
+
+          {/* Checkbox for including environments */}
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeEnvironments}
+              onChange={(e) => setIncludeEnvironments(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span>Include environments in export</span>
+          </label>
+
           <Button
             onClick={handleExport}
             disabled={loading}

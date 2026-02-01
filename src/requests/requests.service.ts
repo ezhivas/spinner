@@ -88,11 +88,26 @@ export class RequestsService {
     const request = await this.findOne(id);
     console.log(`[RequestsService] Request found, applying updates`);
     console.log(`[RequestsService] Auth from DTO:`, (dto as any).auth);
+    console.log(`[RequestsService] Body from DTO:`, dto.body);
+    console.log(`[RequestsService] Body type:`, typeof dto.body);
+    console.log(
+      `[RequestsService] Body length:`,
+      typeof dto.body === 'string'
+        ? dto.body.length
+        : JSON.stringify(dto.body)?.length,
+    );
 
     const { collectionId, ...data } = dto;
     console.log(`[RequestsService] Data to assign (after spreading):`, data);
     Object.assign(request, data);
     console.log(`[RequestsService] Request.auth after assign:`, request.auth);
+    console.log(`[RequestsService] Request.body after assign:`, request.body);
+    console.log(
+      `[RequestsService] Request.body length:`,
+      typeof request.body === 'string'
+        ? request.body.length
+        : JSON.stringify(request.body)?.length,
+    );
 
     if (collectionId !== undefined) {
       console.log(`[RequestsService] Updating collection reference`);

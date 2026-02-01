@@ -11,7 +11,7 @@ export interface BackupData {
   data: {
     collections: any[];
     requests: any[];
-    environments: any[];
+    environments?: any[];
   };
 }
 
@@ -26,7 +26,7 @@ export class BackupService {
     private environmentRepo: Repository<EnvironmentEntity>,
   ) {}
 
-  async exportAll(): Promise<BackupData> {
+  async exportAll(includeEnvironments: boolean = true): Promise<BackupData> {
     // Fetch all data (excluding runs/history)
     const collections = await this.collectionRepo.find({
       relations: ['requests'],
@@ -34,7 +34,6 @@ export class BackupService {
     const requests = await this.requestRepo.find({
       relations: ['collection'],
     });
-    const environments = await this.environmentRepo.find();
 
     // Prepare export data with metadata
     const backup: BackupData = {
@@ -59,14 +58,19 @@ export class BackupService {
           collectionId: r.collectionId,
           createdAt: r.createdAt,
         })),
-        environments: environments.map((e) => ({
-          id: e.id,
-          name: e.name,
-          variables: e.variables,
-          createdAt: e.createdAt,
-        })),
       },
     };
+
+    // Only include environments if requested
+    if (includeEnvironments) {
+      const environments = await this.environmentRepo.find();
+      backup.data.environments = environments.map((e) => ({
+        id: e.id,
+        name: e.name,
+        variables: e.variables,
+        createdAt: e.createdAt,
+      }));
+    }
 
     return backup;
   }
@@ -106,18 +110,20 @@ export class BackupService {
         }
       }
 
-      // 2. Import Environments
-      for (const envData of backup.data.environments) {
-        try {
-          const environment = this.environmentRepo.create({
-            name: envData.name,
-            variables: envData.variables,
-          });
-          const saved = await this.environmentRepo.save(environment);
-          environmentIdMap.set(envData.id, saved.id);
-          imported.environments++;
-        } catch (err) {
-          errors.push(`Environment "${envData.name}": ${err.message}`);
+      // 2. Import Environments (if present)
+      if (backup.data.environments && Array.isArray(backup.data.environments)) {
+        for (const envData of backup.data.environments) {
+          try {
+            const environment = this.environmentRepo.create({
+              name: envData.name,
+              variables: envData.variables,
+            });
+            const saved = await this.environmentRepo.save(environment);
+            environmentIdMap.set(envData.id, saved.id);
+            imported.environments++;
+          } catch (err) {
+            errors.push(`Environment "${envData.name}": ${err.message}`);
+          }
         }
       }
 

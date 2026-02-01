@@ -113,6 +113,59 @@ export class CollectionsService {
       if (item.request) {
         // It's a request
         const req = item.request;
+
+        // Map Postman auth -> internal auth shape
+        const mapAuth = (auth: any) => {
+          if (!auth || !auth.type) return undefined;
+          switch (auth.type) {
+            case 'bearer': {
+              const tokenEntry = Array.isArray(auth.bearer)
+                ? auth.bearer.find((b: any) => b.key === 'token') ||
+                  auth.bearer[0]
+                : null;
+              const token = tokenEntry?.value;
+              return token ? { type: 'bearer', bearer: { token } } : undefined;
+            }
+            case 'basic': {
+              const username = Array.isArray(auth.basic)
+                ? auth.basic.find((b: any) => b.key === 'username')?.value
+                : undefined;
+              const password = Array.isArray(auth.basic)
+                ? auth.basic.find((b: any) => b.key === 'password')?.value
+                : undefined;
+              return username || password
+                ? {
+                    type: 'basic',
+                    basic: {
+                      username: username || '',
+                      password: password || '',
+                    },
+                  }
+                : undefined;
+            }
+            case 'apikey': {
+              const keyEntry = Array.isArray(auth.apikey)
+                ? auth.apikey.find((a: any) => a.key === 'key') ||
+                  auth.apikey[0]
+                : null;
+              const valueEntry = Array.isArray(auth.apikey)
+                ? auth.apikey.find((a: any) => a.key === 'value') ||
+                  auth.apikey[1]
+                : null;
+              const addToEntry = Array.isArray(auth.apikey)
+                ? auth.apikey.find((a: any) => a.key === 'in')
+                : null;
+              const key = keyEntry?.value;
+              const value = valueEntry?.value;
+              const addTo = addToEntry?.value === 'query' ? 'query' : 'header';
+              return key && value
+                ? { type: 'apikey', apikey: { key, value, addTo } }
+                : undefined;
+            }
+            default:
+              return undefined;
+          }
+        };
         let body: string | null = null;
         if (req.body) {
           if (req.body.mode === 'raw') {
@@ -172,6 +225,7 @@ export class CollectionsService {
               {},
             ) || {},
           body,
+          auth: mapAuth(req.auth),
           preRequestScript,
           postRequestScript,
         });
@@ -183,7 +237,55 @@ export class CollectionsService {
     return requests;
   }
 
-  async exportToPostman(collection: CollectionEntity): Promise<any> {
+  exportToPostman(collection: CollectionEntity): any {
+    const mapAuthToPostman = (auth: any) => {
+      if (!auth || !auth.type || auth.type === 'noauth') return undefined;
+      switch (auth.type) {
+        case 'bearer':
+          return {
+            type: 'bearer',
+            bearer: [
+              {
+                key: 'token',
+                value: auth.bearer?.token || '',
+                type: 'string',
+              },
+            ],
+          };
+        case 'basic':
+          return {
+            type: 'basic',
+            basic: [
+              {
+                key: 'username',
+                value: auth.basic?.username || '',
+                type: 'string',
+              },
+              {
+                key: 'password',
+                value: auth.basic?.password || '',
+                type: 'string',
+              },
+            ],
+          };
+        case 'apikey':
+          return {
+            type: 'apikey',
+            apikey: [
+              { key: 'key', value: auth.apikey?.key || '', type: 'string' },
+              { key: 'value', value: auth.apikey?.value || '', type: 'string' },
+              {
+                key: 'in',
+                value: auth.apikey?.addTo === 'query' ? 'query' : 'header',
+                type: 'string',
+              },
+            ],
+          };
+        default:
+          return undefined;
+      }
+    };
+
     const items = collection.requests.map((req) => {
       const events: Array<{
         listen: string;
@@ -220,6 +322,7 @@ export class CollectionsService {
         event: events.length > 0 ? events : undefined,
         request: {
           method: req.method,
+          auth: mapAuthToPostman(req.auth),
           header: Object.entries(req.headers || {}).map(([key, value]) => ({
             key,
             value,

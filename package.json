@@ -49,6 +49,7 @@
     "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
     "get-port": "^5.1.1",
+    "httpsnippet": "^2.0.0",
     "ioredis": "^5.9.2",
     "pg": "^8.17.2",
     "reflect-metadata": "^0.2.2",
@@ -93,7 +94,10 @@
   "overrides": {
     "lodash": "^4.17.21",
     "tar": "^7.5.6",
-    "electron": "^35.7.5"
+    "electron": "^35.7.5",
+    "httpsnippet": {
+      "form-data": "^4.0.5"
+    }
   },
   "jest": {
     "moduleFileExtensions": [

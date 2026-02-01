@@ -6,10 +6,11 @@ import { apiClient } from './client';
 export const backupApi = {
   /**
    * Экспортировать все данные приложения
+   * @param includeEnvironments - включить ли окружения в экспорт (по умолчанию true)
    */
-  exportAll: async (): Promise<Blob> => {
+  exportAll: async (includeEnvironments: boolean = true): Promise<Blob> => {
     const baseUrl = await apiClient.getBaseUrl();
-    const response = await fetch(baseUrl + '/api/backup/export', {
+    const response = await fetch(baseUrl + `/api/backup/export?includeEnvironments=${includeEnvironments}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

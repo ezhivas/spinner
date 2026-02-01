@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Upload, Download, Database } from 'lucide-react';
+import { Upload, Download, Database, Sun, Moon } from 'lucide-react';
 import { EnvironmentSelector } from '@/components/environments/EnvironmentSelector';
 import { ImportModal, ExportModal } from '@/components/import-export';
 import { GlobalBackupModal } from '@/components/backup/GlobalBackupModal';
+import { useThemeStore } from '@/store';
 
 /**
  * Header приложения с селектором окружений
@@ -11,6 +12,7 @@ export const Header = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
     <>
@@ -55,6 +57,14 @@ export const Header = () => {
 
         {/* Right side - App Name */}
         <div className="flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
           <h1 className="text-xl font-bold text-gray-900">SpinneR</h1>
         </div>
       </div>

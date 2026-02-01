@@ -3,13 +3,17 @@ import { Header, Layout, Sidebar, Workspace, StatusFooter } from './components/l
 import { ToastContainer } from './components/common';
 import { apiClient } from './api';
 import { logger } from './utils/logger';
+import { useThemeStore } from './store';
 
 function App() {
-  // Инициализация API клиента при запуске
+  const { initTheme } = useThemeStore();
+
+  // Initialize API client on app startup
   useEffect(() => {
     apiClient.init().catch((error) => {
       logger.error('Failed to initialize API client', error);
     });
+    initTheme();
   }, []);
 
   return (

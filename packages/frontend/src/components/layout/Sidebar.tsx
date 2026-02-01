@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Plus, FileText, FolderOpen, Clock } from 'lucide-react';
+import { Plus, FileText, FolderOpen, Clock, FileCode } from 'lucide-react';
 import { useCollectionsStore, useTabsStore } from '@/store';
 import { CollectionModal } from '@/components/collections/CollectionModal';
 import { CollectionItem } from '@/components/collections/CollectionItem';
 import { HistoryPanel } from '@/components/history';
 import { ResizablePanel } from '@/components/common';
 import { NewRequestModal } from '@/components/requests/NewRequestModal';
+import { ImportCurlModal } from '@/components/requests/ImportCurlModal';
 import type { ICollection } from '@shared/collections';
 
 type TabType = 'collections' | 'history';
@@ -18,6 +19,7 @@ export const Sidebar = () => {
   const { addTab } = useTabsStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewRequestModalOpen, setIsNewRequestModalOpen] = useState(false);
+  const [isImportCurlModalOpen, setIsImportCurlModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<ICollection | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('collections');
 
@@ -51,6 +53,16 @@ export const Sidebar = () => {
       data: {
         collectionId,
       },
+    });
+  };
+
+  const handleImportCurlSuccess = (requestId: number) => {
+    // Refresh collections to show the new request
+    fetchCollections();
+    // Open the imported request in a new tab
+    addTab({
+      requestId,
+      name: 'Imported Request',
     });
   };
 
@@ -122,6 +134,16 @@ export const Sidebar = () => {
                     <FileText size={18} color="#FFFFFF" strokeWidth={2.5} style={{ minWidth: '18px', minHeight: '18px', flexShrink: 0 }} />
                     <span>New Request</span>
                   </button>
+
+                  {/* Import from cURL Button */}
+                  <button
+                    onClick={() => setIsImportCurlModalOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm flex-wrap"
+                    title="Import from cURL"
+                  >
+                    <FileCode size={18} color="#4B5563" strokeWidth={2.5} style={{ minWidth: '18px', minHeight: '18px', flexShrink: 0 }} />
+                    <span>Import cURL</span>
+                  </button>
                 </div>
 
                 {/* Collections List */}
@@ -167,6 +189,13 @@ export const Sidebar = () => {
         onClose={() => setIsNewRequestModalOpen(false)}
         collections={collections}
         onCreateRequest={handleCreateRequest}
+      />
+
+      {/* Import cURL Modal */}
+      <ImportCurlModal
+        isOpen={isImportCurlModalOpen}
+        onClose={() => setIsImportCurlModalOpen(false)}
+        onSuccess={handleImportCurlSuccess}
       />
     </>
   );
