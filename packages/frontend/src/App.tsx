@@ -8,7 +8,7 @@ import { useThemeStore } from './store';
 function App() {
   const { initTheme } = useThemeStore();
 
-  // Инициализация API клиента при запуске
+  // Initialize API client on app startup
   useEffect(() => {
     apiClient.init().catch((error) => {
       logger.error('Failed to initialize API client', error);
