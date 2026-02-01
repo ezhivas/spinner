@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HttpMethod } from './request.entity';
 import { HarRequest } from 'httpsnippet';
-import * as hts from 'httpsnippet';
 import { parseCurlToRequest } from './curl-shell-parser';
 
 interface CurlConversionResult {
@@ -180,7 +179,12 @@ export class CurlConverterService {
           if (username && password) {
             auth = { type: 'basic', basic: { username, password } };
           }
-        } catch {}
+        } catch (e) {
+          console.error(
+            '[curlToRequest] Failed to decode Basic auth header',
+            e,
+          );
+        }
       }
     }
     return {
@@ -283,8 +287,6 @@ export class CurlConverterService {
    * Парсер cURL - поддерживает формат Postman (длинные флаги) и обычный формат
    */
   private parseComplexCurl(curlCommand: string): CurlConversionResult {
-    const original = curlCommand.trim();
-
     // Normalize line breaks: replace backslash-newline (curl line continuation) with space
     const normalized = curlCommand.replace(/\\\n/g, ' ').trim();
 
@@ -323,12 +325,10 @@ export class CurlConverterService {
     // Find all header occurrences manually to handle complex values
     const headerRegex = /(?:-H|--header)\s+'/g;
     let match;
-    const searchPos = 0;
 
     while ((match = headerRegex.exec(normalized)) !== null) {
       const startPos = match.index + match[0].length;
       let endPos = startPos;
-      const depth = 0;
 
       // Find matching closing quote, handling '\'' escapes
       for (let i = startPos; i < normalized.length; i++) {
@@ -404,10 +404,11 @@ export class CurlConverterService {
         body = JSON.parse(rawBody);
         bodyType = 'json';
         console.log('[parseComplexCurl] Parsed as JSON successfully');
-      } catch (e) {
+      } catch (err) {
         // Not valid JSON, treat as raw string and unescape manually
         console.log(
           '[parseComplexCurl] Not valid JSON, treating as raw string',
+          err,
         );
 
         // Unescape common escape sequences for raw strings

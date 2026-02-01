@@ -237,7 +237,7 @@ export class CollectionsService {
     return requests;
   }
 
-  async exportToPostman(collection: CollectionEntity): Promise<any> {
+  exportToPostman(collection: CollectionEntity): any {
     const mapAuthToPostman = (auth: any) => {
       if (!auth || !auth.type || auth.type === 'noauth') return undefined;
       switch (auth.type) {

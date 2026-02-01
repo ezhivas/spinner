@@ -18,11 +18,8 @@ export function EnumColumn(options: ColumnOptions & { enum: any }) {
     if (dbType === 'sqlite') {
       // SQLite doesn't support enum, use text instead
       // Remove enum from options for SQLite
-      const { enum: _, ...restOptions } = options;
-      const columnOptions: ColumnOptions = {
-        ...restOptions,
-        type: 'text',
-      };
+      const columnOptions: ColumnOptions = { ...options, type: 'text' };
+      delete (columnOptions as any).enum;
       return Column(columnOptions)(target, propertyKey);
     } else {
       // PostgreSQL supports native enum

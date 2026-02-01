@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { PostRequestScriptService } from './post-request-script.service';
 import { EnvironmentEntity } from '../environments/environment.entity';
 
