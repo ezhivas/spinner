@@ -12,7 +12,7 @@ interface ImportCurlModalProps {
 }
 
 /**
- * Модальное окно для импорта запроса из cURL команды
+ * Modal window for importing a request from a cURL command
  */
 export const ImportCurlModal = ({ isOpen, onClose, collectionId, onSuccess }: ImportCurlModalProps) => {
   const { success, error: showError } = useToastStore();
